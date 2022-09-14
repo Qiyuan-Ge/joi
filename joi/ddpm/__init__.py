@@ -17,7 +17,7 @@ def create_model(img_size=64, num_channels=3, num_classes=None, dropout=0):
                     num_heads=2)
     elif img_size <= 64:
         return UNet(in_channels=num_channels, 
-                    model_channels=194, 
+                    model_channels=256, 
                     out_channels=num_channels, 
                     num_res_blocks=2, 
                     attention_resolutions=(3,), 
