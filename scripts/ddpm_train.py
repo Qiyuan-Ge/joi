@@ -13,8 +13,9 @@ def main():
     parser.add_argument("--wd", type=float, default=0.0, help="adamw: weight decay")
     parser.add_argument("--img_size", type=int, default=64, help="size of each image dimension")
     parser.add_argument("--channels", type=int, default=3, help="number of image channels")
+    parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
     parser.add_argument("--timesteps", type=int, default=1000, help="timesteps, default: 1000") 
-    parser.add_argument("--dropout", type=float, default=0.0, help="dropout rate")
+    #parser.add_argument("--dropout", type=float, default=0.0, help="dropout rate")
     parser.add_argument("--dataset", type=str, default='cifar10', help="mnist, cifar10, default: cifar10")
     parser.add_argument("--beta_schedule", type=str, default='cosine', help="beta schedule: cosine, linear, default: cosine")
     parser.add_argument("--loss_type", type=str, default='l2', help="loss type: l1, l2, huber, default: l2")
@@ -62,9 +63,8 @@ def main():
         )
         
     model, diffusion = ddpm.create_model_and_diffusion(img_size=arg.img_size, 
-                                                       num_channels=arg.channels, 
-                                                       num_classes=None, 
-                                                       dropout=arg.dropout, 
+                                                       in_channels=arg.channels,
+                                                       out_channels=arg.out_channels, 
                                                        timesteps=arg.timesteps, 
                                                        beta_schedule=arg.beta_schedule, 
                                                        loss_type=arg.loss_type)
