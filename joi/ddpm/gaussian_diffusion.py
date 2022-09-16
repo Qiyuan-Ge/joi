@@ -6,6 +6,7 @@ from tqdm.auto import tqdm
 def linear_beta_schedule(timesteps):
     beta_start = 0.0001
     beta_end = 0.02
+    
     return torch.linspace(beta_start, beta_end, timesteps)
 
 
@@ -18,19 +19,21 @@ def cosine_beta_schedule(timesteps, s=0.008):
     alphas_cumprod = torch.cos(((x / timesteps) + s) / (1 + s) * torch.pi * 0.5) ** 2
     alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
     betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
+    
     return torch.clip(betas, 0.0001, 0.9999)
 
 
 def extract(a, t, x_shape):
     batch_size = t.shape[0]
     out = a.gather(-1, t.cpu())
+    
     return out.reshape(batch_size, *((1,) * (len(x_shape) - 1))).to(t.device)
 
 
 class GaussianDiffusion:
     def __init__(self, model, timesteps=1000, beta_schedule='cosine', loss_type="l2"):
         super().__init__()
-        self.denoise_model = model
+        self.model = model
         self.device = next(model.parameters()).device
         self.timesteps = timesteps
         self.loss_type = loss_type
@@ -55,8 +58,8 @@ class GaussianDiffusion:
         self.posterior_variance = self.betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
     
     def to(self, device):
-        self.denoise_model.to(device)
-        self.device = next(self.denoise_model.parameters()).device
+        self.model.to(device)
+        self.device = next(self.model.parameters()).device
             
     def q_sample(self, x_start, t, noise=None):
         if noise is None:
@@ -78,22 +81,22 @@ class GaussianDiffusion:
             
         return loss
         
-    def p_losses(self, x_start, t, noise=None):
+    def p_losses(self, x_start, t, noise=None, y=None):
         if noise is None:
             noise = torch.randn_like(x_start)
 
         x_noisy = self.q_sample(x_start, t, noise)
-        predicted_noise = self.denoise_model(x_noisy, t)
+        predicted_noise = self.model(x_noisy, t, y)
 
         return self.loss(noise, predicted_noise)
     
     @torch.no_grad()
-    def p_sample(self, x, t, t_index):
+    def p_sample(self, x, t, t_index, y=None):
         betas_t = extract(self.betas, t, x.shape)
         sqrt_one_minus_alphas_cumprod_t = extract(self.sqrt_one_minus_alphas_cumprod, t, x.shape)
         sqrt_recip_alphas_t = extract(self.sqrt_recip_alphas, t, x.shape)
         
-        model_mean = sqrt_recip_alphas_t * (x - betas_t * self.denoise_model(x, t) / sqrt_one_minus_alphas_cumprod_t)
+        model_mean = sqrt_recip_alphas_t * (x - betas_t * self.model(x, t, y) / sqrt_one_minus_alphas_cumprod_t)
         
         if t_index == 0:
             return model_mean
@@ -104,18 +107,18 @@ class GaussianDiffusion:
             return model_mean + torch.sqrt(posterior_variance_t) * noise
         
     @torch.no_grad()
-    def p_sample_loop(self, shape):
+    def p_sample_loop(self, shape, y):
         b = shape[0]
         # start from pure noise
         img = torch.randn(shape, device=self.device)
         imgs = []
         
         for i in tqdm(reversed(range(0, self.timesteps)), desc='sampling loop time step', total=self.timesteps):
-            img = self.p_sample(img, torch.full((b,), i, device=self.device, dtype=torch.long), i)
+            img = self.p_sample(img, torch.full((b,), i, device=self.device, dtype=torch.long), i, y)
             imgs.append(img.cpu())
             
         return imgs
     
     @torch.no_grad()
-    def sample(self, image_size, batch_size=16, channels=3):
-        return  self.p_sample_loop(shape=(batch_size, channels, image_size, image_size))
+    def sample(self, image_size, batch_size=16, channels=3, labels=None):
+        return  self.p_sample_loop(shape=(batch_size, channels, image_size, image_size), y=labels)

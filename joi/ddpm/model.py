@@ -59,9 +59,7 @@ class TimeEmbeddings(nn.Module):
 class ConvNextBlock(nn.Module):
     def __init__(self, in_dim, out_dim, time_emb_dim=None, mult=2):
         super().__init__()
-        self.mlp = (
-            nn.Sequential(nn.GELU(), nn.Linear(time_emb_dim, in_dim)) if exists(time_emb_dim) else None
-        )
+        self.mlp = nn.Sequential(nn.GELU(), nn.Linear(time_emb_dim, in_dim)) if exists(time_emb_dim) else None
         
         self.ds_conv = nn.Conv2d(in_dim, in_dim, 7, padding=3, groups=in_dim)
         
@@ -133,6 +131,7 @@ class Unet(nn.Module):
         n_heads=4, 
         dim_head=32,
         convnext_mult=2,
+        num_classes=None,
         ):
         super().__init__()
         self.init_conv = nn.Conv2d(in_channels, init_dim, 7, padding=3)
@@ -144,9 +143,13 @@ class Unet(nn.Module):
         self.time_mlp = nn.Sequential(
             TimeEmbeddings(dim),
             nn.Linear(dim, time_dim),
-            nn.GELU(),
+            nn.SiLU(),
             nn.Linear(time_dim, time_dim),
             )
+        
+        self.num_classes = num_classes
+        if num_classes is not None:
+            self.label_emb = nn.Embedding(num_classes, time_dim)
             
         self.downs = nn.ModuleList([])
         self.ups = nn.ModuleList([])
@@ -188,9 +191,21 @@ class Unet(nn.Module):
             nn.Conv2d(dim, out_dim, 1),
         )
         
-    def forward(self, x, time):
+    def forward(self, x, time, y=None):
+        """
+        Args:
+            x: (B, C, H, W)
+            timesteps: 1-D batch of timesteps
+            y: (B,) labels, if class-conditional
+
+        Returns:
+            output: (B, C, H, W)
+        """        
         x = self.init_conv(x)  
-        t = self.time_mlp(time) 
+        t = self.time_mlp(time)
+        if self.num_classes is not None:
+            assert y.shape[0] == x.shape[0]
+            t = t + self.label_emb(y)
         h = []
             
         for block1, block2, attn, downsample in self.downs:

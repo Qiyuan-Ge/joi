@@ -2,24 +2,29 @@ import os
 import torch
 from torchvision.utils import save_image
 
-class DDPM_Trainer:
-    def __init__(self, diffusion, lr, weight_decay, dataloader, sample_interval=None, device=None, result_folder=None):
+class DiffusionTrainer:
+    def __init__(self, diffusion, timesteps, lr, weight_decay, dataloader, sample_interval=None, device=None, result_folder=None, num_classes=None):
         self.device = device or 'cuda' if torch.cuda.is_available() else 'cpu'
         self.lr = lr
         self.weight_decay = weight_decay
         self.diffusion = diffusion
-        self.timesteps = diffusion.timesteps
-        self.optimizer = torch.optim.AdamW(self.diffusion.denoise_model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        self.timesteps = timesteps
+        self.optimizer = torch.optim.AdamW(self.diffusion.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
         self.dataloader = dataloader
         self.sample_interval = sample_interval
         self.result_folder = result_folder
+        self.num_classes = num_classes
         self.diffusion.to(self.device)
         
     def reverse_transform(self, img):
-        return (img + 1) * 0.5
+        return torch.clamp((img + 1) * 0.5, 0, 1)
     
     def sample_and_save(self, img_size, batch_size, channels, milestone):
-        all_images = self.diffusion.sample(img_size, batch_size, channels)
+        if self.num_classes is not None:
+            labels = torch.randint(0, self.num_classes, size=(batch_size,))
+            all_images = self.diffusion.sample(img_size, batch_size, channels, labels)
+        else:
+            all_images = self.diffusion.sample(img_size, batch_size, channels)
         n_cols = 10
         strides = self.timesteps // n_cols
         all_images = torch.cat(all_images[::strides], dim=0)
@@ -31,14 +36,16 @@ class DDPM_Trainer:
         for epoch in range(num_epochs):
             for step, batch in enumerate(self.dataloader):
                 self.optimizer.zero_grad()
-                batch = batch[0]
-                batch_size, ch, img_size, _ = batch.shape
-                batch = batch.to(self.device)
-
+                imgs, labels = batch
+                batch_size, ch, img_size, img_size = imgs.shape
+                imgs = imgs.to(self.device)
+                labels = labels.to(self.device)
                 # Algorithm 1 line 3: sample t uniformally for every example in the batch
                 t = torch.randint(0, self.timesteps, (batch_size,), device=self.device).long()
-                loss = self.diffusion.p_losses(batch, t)
-
+                if self.num_classes is not None:
+                    loss = self.diffusion.p_losses(imgs, t, y=labels)
+                else:
+                    loss = self.diffusion.p_losses(imgs, t)
                 loss.backward()
                 self.optimizer.step()
                 
