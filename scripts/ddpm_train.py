@@ -15,7 +15,7 @@ def main():
     parser.add_argument("--channels", type=int, default=3, help="number of image channels")
     parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
     parser.add_argument("--timesteps", type=int, default=1000, help="timesteps, default: 1000") 
-    #parser.add_argument("--dropout", type=float, default=0.0, help="dropout rate")
+    parser.add_argument("--num_classes", type=int, default=None, help="number of classes")
     parser.add_argument("--dataset", type=str, default='cifar10', help="mnist, cifar10, default: cifar10")
     parser.add_argument("--beta_schedule", type=str, default='cosine', help="beta schedule: cosine, linear, default: cosine")
     parser.add_argument("--loss_type", type=str, default='l2', help="loss type: l1, l2, huber, default: l2")
@@ -67,7 +67,8 @@ def main():
                                                        out_channels=arg.out_channels, 
                                                        timesteps=arg.timesteps, 
                                                        beta_schedule=arg.beta_schedule, 
-                                                       loss_type=arg.loss_type)
+                                                       loss_type=arg.loss_type,
+                                                       )
                 
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=arg.bs, shuffle=True)
     
@@ -75,12 +76,15 @@ def main():
     res_path.mkdir(exist_ok = True)
     print(f"images saved path: {res_path}")
 
-    trainer = ddpm.DDPM_Trainer(diffusion, 
-                                lr=arg.lr, 
-                                weight_decay=arg.wd, 
-                                dataloader=dataloader, 
-                                sample_interval=arg.sample_interval, 
-                                result_folder=res_path)
+    trainer = ddpm.DiffusionTrainer(diffusion, 
+                                    timesteps=arg.timesteps, 
+                                    lr=arg.lr, 
+                                    weight_decay=arg.wd, 
+                                    dataloader=dataloader, 
+                                    sample_interval=arg.sample_interval, 
+                                    result_folder=res_path,
+                                    num_classes=arg.num_classes,
+                                    )
     trainer.train(arg.n_epochs)
 
 
