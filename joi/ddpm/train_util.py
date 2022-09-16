@@ -1,6 +1,10 @@
 import os
+import numpy as np
 import torch
 from torchvision.utils import save_image
+
+def reverse_transform(img):
+    return torch.clamp((img + 1) * 0.5, 0, 1)
 
 class DiffusionTrainer:
     def __init__(self, diffusion, timesteps, lr, weight_decay, dataloader, sample_interval=None, device=None, result_folder=None, num_classes=None):
@@ -15,22 +19,23 @@ class DiffusionTrainer:
         self.result_folder = result_folder
         self.num_classes = num_classes
         self.diffusion.to(self.device)
-        
-    def reverse_transform(self, img):
-        return torch.clamp((img + 1) * 0.5, 0, 1)
     
-    def sample_and_save(self, img_size, batch_size, channels, milestone):
+    def sample_and_save(self, img_size, channels, img_name):
+        n_row, n_col = 10, 6
         if self.num_classes is not None:
-            labels = torch.randint(0, self.num_classes, size=(batch_size,))
-            all_images = self.diffusion.sample(img_size, batch_size, channels, labels)
+            if self.num_classes <= n_row:
+                n_row = self.num_classes
+                labels = torch.tensor([num for num in range(n_row) for _ in range(n_col)])
+                gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, labels)[-1]
+            else:
+                random_labels = np.random.choice(np.arange(self.num_classes), size=n_row, replace=False)
+                labels = torch.tensor([num for num in random_labels for _ in range(n_col)])
+                gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, labels)[-1]
         else:
-            all_images = self.diffusion.sample(img_size, batch_size, channels)
-        n_cols = 10
-        strides = self.timesteps // n_cols
-        all_images = torch.cat(all_images[::strides], dim=0)
-        all_images = self.reverse_transform(all_images)
-        image_path = os.path.join(self.result_folder, f"sample-{milestone}.png")
-        save_image(all_images.data, image_path, nrow=batch_size)
+            gen_images = self.diffusion.sample(img_size, n_row*n_col, channels)[-1]
+        gen_images = reverse_transform(gen_images)
+        image_path = os.path.join(self.result_folder, f"sample-{img_name}.png")
+        save_image(gen_images, image_path, nrow=n_row) 
         
     def train(self, num_epochs):
         for epoch in range(num_epochs):
@@ -57,10 +62,9 @@ class DiffusionTrainer:
                 # save generated images
                 milestone = epoch * len(self.dataloader) + step
                 if milestone != 0 and milestone % self.sample_interval == 0:
-                    self.sample_and_save(img_size, batch_size=10, channels=ch, milestone=milestone)
+                    self.sample_and_save(img_size, channels=ch, img_name=milestone)
                     
         print("Train finished!")
                     
 
-            
             
