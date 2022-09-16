@@ -4,7 +4,7 @@ import torch
 from torchvision.utils import save_image
 
 def reverse_transform(img):
-    return torch.clamp((img + 1) * 0.5, 0, 1)
+    return (img + 1) * 0.5
 
 class DiffusionTrainer:
     def __init__(self, diffusion, timesteps, lr, weight_decay, dataloader, sample_interval=None, device=None, result_folder=None, num_classes=None):
@@ -25,11 +25,11 @@ class DiffusionTrainer:
         if self.num_classes is not None:
             if self.num_classes <= n_row:
                 n_row = self.num_classes
-                labels = torch.tensor([num for num in range(n_row) for _ in range(n_col)])
+                labels = torch.tensor([num for num in range(n_row) for _ in range(n_col)]).long()
                 gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, labels)[-1]
             else:
                 random_labels = np.random.choice(np.arange(self.num_classes), size=n_row, replace=False)
-                labels = torch.tensor([num for num in random_labels for _ in range(n_col)])
+                labels = torch.tensor([num for num in random_labels for _ in range(n_col)]).long()
                 gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, labels)[-1]
         else:
             gen_images = self.diffusion.sample(img_size, n_row*n_col, channels)[-1]
