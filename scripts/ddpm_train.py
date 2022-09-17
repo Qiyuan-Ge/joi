@@ -11,6 +11,7 @@ def main():
     parser.add_argument("--bs", type=int, default=32, help="batch size: size of the batches")
     parser.add_argument("--lr", type=float, default=1e-4, help="adamw: learning rate")
     parser.add_argument("--wd", type=float, default=0.0, help="adamw: weight decay")
+    parser.add_argument("--dropout", type=float, default=0.0, help="dropout rate")
     parser.add_argument("--img_size", type=int, default=64, help="size of each image dimension")
     parser.add_argument("--channels", type=int, default=3, help="number of image channels")
     parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
@@ -68,8 +69,11 @@ def main():
                                                        timesteps=arg.timesteps, 
                                                        beta_schedule=arg.beta_schedule, 
                                                        loss_type=arg.loss_type,
+                                                       num_classes=arg.num_classes,
+                                                       dropout=arg.dropout,
                                                        )
-                
+    n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f'number of learnable parameters: {n_parameters//1e6}M')            
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=arg.bs, shuffle=True)
     
     res_path = pathlib.Path.cwd() / "result"
