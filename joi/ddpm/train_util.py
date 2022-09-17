@@ -25,12 +25,11 @@ class DiffusionTrainer:
         if self.num_classes is not None:
             if self.num_classes <= n_row:
                 n_row = self.num_classes
-                labels = torch.tensor([num for num in range(n_row) for _ in range(n_col)]).long()
-                gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, labels)[-1]
+                labels = torch.tensor([num for num in range(n_row) for _ in range(n_col)]).long().to(self.device)
             else:
                 random_labels = np.random.choice(np.arange(self.num_classes), size=n_row, replace=False)
-                labels = torch.tensor([num for num in random_labels for _ in range(n_col)]).long()
-                gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, labels)[-1]
+                labels = torch.tensor([num for num in random_labels for _ in range(n_col)]).long().to(self.device)
+            gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, labels)[-1]
         else:
             gen_images = self.diffusion.sample(img_size, n_row*n_col, channels)[-1]
         gen_images = reverse_transform(gen_images)
