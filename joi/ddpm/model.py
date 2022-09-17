@@ -123,9 +123,9 @@ class PreNorm(nn.Module):
 class Unet(nn.Module):
     def __init__(
         self,
-        dim=64,
+        dim,
         in_channels=3,
-        init_dim=96,
+        init_dim=None,
         out_channels=None,
         dim_mults=(1, 2, 4, 8),
         n_heads=4, 
@@ -135,7 +135,7 @@ class Unet(nn.Module):
         ):
         super().__init__()
         self.init_conv = nn.Conv2d(in_channels, init_dim, 7, padding=3)
-            
+        init_dim = init_dim or dim // 3 * 2   
         dims = [init_dim, *map(lambda m: dim * m, dim_mults)]
         in_out = list(zip(dims[:-1], dims[1:]))
             
@@ -143,7 +143,7 @@ class Unet(nn.Module):
         self.time_mlp = nn.Sequential(
             TimeEmbeddings(dim),
             nn.Linear(dim, time_dim),
-            nn.SiLU(),
+            nn.GELU(),
             nn.Linear(time_dim, time_dim),
             )
         
