@@ -9,18 +9,19 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--n_epochs", type=int, default=200, help="number of epochs of training")
     parser.add_argument("--bs", type=int, default=32, help="batch size: size of the batches")
+    parser.add_argument("--timesteps", type=int, default=1000, help="timesteps, default: 1000") 
     parser.add_argument("--lr", type=float, default=1e-4, help="adamw: learning rate")
     parser.add_argument("--wd", type=float, default=0.0, help="adamw: weight decay")
     parser.add_argument("--dropout", type=float, default=0.0, help="dropout rate")
-    parser.add_argument("--img_size", type=int, default=64, help="size of each image dimension")
+    parser.add_argument("--warm_up", type=int, default=8000, help="warm_up_steps")
+    parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
     parser.add_argument("--channels", type=int, default=3, help="number of image channels")
     parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
-    parser.add_argument("--timesteps", type=int, default=1000, help="timesteps, default: 1000") 
     parser.add_argument("--num_classes", type=int, default=None, help="number of classes")
     parser.add_argument("--dataset", type=str, default='cifar10', help="mnist, cifar10, default: cifar10")
     parser.add_argument("--beta_schedule", type=str, default='cosine', help="beta schedule: cosine, linear, default: cosine")
     parser.add_argument("--loss_type", type=str, default='l2', help="loss type: l1, l2, huber, default: l2")
-    parser.add_argument("--sample_interval", type=int, default=800, help="interval between image sampling")
+    parser.add_argument("--sample_interval", type=int, default=1000, help="interval between image sampling")
     parser.add_argument("--data_path", type=str, default='none', help="set your own data path")
     arg = parser.parse_args()
     print(arg)
@@ -78,13 +79,14 @@ def main():
     
     res_path = pathlib.Path.cwd() / "result"
     res_path.mkdir(exist_ok = True)
-    print(f"images saved path: {res_path}")
+    print(f"image folder path: {res_path}")
 
     trainer = ddpm.DiffusionTrainer(diffusion, 
                                     timesteps=arg.timesteps, 
                                     lr=arg.lr, 
                                     weight_decay=arg.wd, 
-                                    dataloader=dataloader, 
+                                    dataloader=dataloader,
+                                    warm_up_steps=arg.warm_up,
                                     sample_interval=arg.sample_interval, 
                                     result_folder=res_path,
                                     num_classes=arg.num_classes,
