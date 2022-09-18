@@ -12,7 +12,7 @@ def reverse_transform(img):
 def rate(step, warmup):
     if step == 0:
         step = 1
-    return 512 ** (-0.5) * min(step ** (-0.5), step * warmup ** (-1.5))
+    return 10000 * (512 ** (-0.5) * min(step ** (-0.5), step * warmup ** (-1.5)))
 
 
 class DiffusionTrainer:
