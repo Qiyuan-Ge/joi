@@ -8,7 +8,7 @@
 ### MNIST
 - without guidence
 
-- with guidence
+- classifier free guidance
 <div align=center>
 <img src="https://user-images.githubusercontent.com/53368178/190882823-17c86cdd-760d-430d-9686-feaf4cd2072c.png">
 </div>
