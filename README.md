@@ -9,6 +9,9 @@
 - without guidence
 
 - with guidence
+<div align=center>
+<img src="https://user-images.githubusercontent.com/53368178/190882823-17c86cdd-760d-430d-9686-feaf4cd2072c.png">
+</div>
 
 ### reference
 - https://lilianweng.github.io/posts/2021-07-11-diffusion-models/#:~:text=Diffusion%20models%20are%20inspired%20by%20non-equilibrium%20thermodynamics.%20They,to%20construct%20desired%20data%20samples%20from%20the%20noise.
