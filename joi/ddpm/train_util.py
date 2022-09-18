@@ -76,7 +76,7 @@ class DiffusionTrainer:
                 
                 print(
                     "[Epoch %d|%d] [Batch %d|%d] [loss: %f] [lr: %f]"
-                    % (epoch, num_epochs, step, len(self.dataloader), loss, self.optimizer.state_dict()['param_groups'][0]['lr'])
+                    % (epoch, num_epochs, step, len(self.dataloader), loss, self.optimizer.param_groups[0]['lr'])
                     )
     
                 # save generated images
