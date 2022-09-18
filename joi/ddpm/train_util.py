@@ -1,19 +1,40 @@
 import os
 import numpy as np
 import torch
+from torch.optim.lr_scheduler import LambdaLR
 from torchvision.utils import save_image
+
 
 def reverse_transform(img):
     return (img + 1) * 0.5
 
+
+def rate(step, warmup):
+    if step == 0:
+        step = 1
+    return 512 ** (-0.5) * min(step ** (-0.5), step * warmup ** (-1.5))
+
+
 class DiffusionTrainer:
-    def __init__(self, diffusion, timesteps, lr, weight_decay, dataloader, sample_interval=None, device=None, result_folder=None, num_classes=None):
+    def __init__(self, 
+                 diffusion, 
+                 timesteps, 
+                 lr, 
+                 weight_decay, 
+                 dataloader, 
+                 warm_up_steps=8000, 
+                 sample_interval=None, 
+                 device=None, 
+                 result_folder=None, 
+                 num_classes=None,
+                ):
         self.device = device or 'cuda' if torch.cuda.is_available() else 'cpu'
-        self.lr = lr
-        self.weight_decay = weight_decay
         self.diffusion = diffusion
         self.timesteps = timesteps
-        self.optimizer = torch.optim.AdamW(self.diffusion.model.parameters(), lr=self.lr, weight_decay=self.weight_decay)
+        self.optimizer = torch.optim.AdamW(self.diffusion.model.parameters(), lr=lr, weight_decay=weight_decay)
+        self.lr_scheduler = LambdaLR(
+            optimizer=self.optimizer, lr_lambda=lambda step: rate(step, warm_up_steps)
+        )
         self.dataloader = dataloader
         self.sample_interval = sample_interval
         self.result_folder = result_folder
@@ -32,7 +53,7 @@ class DiffusionTrainer:
             gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, labels)[-1]
         else:
             gen_images = self.diffusion.sample(img_size, n_row*n_col, channels)[-1]
-        gen_images = reverse_transform(gen_images)
+        gen_images = torch.clamp(reverse_transform(gen_images), 0, 1)
         image_path = os.path.join(self.result_folder, f"sample-{img_name}.png")
         save_image(gen_images, image_path, nrow=n_row) 
         
@@ -43,19 +64,19 @@ class DiffusionTrainer:
                 imgs, labels = batch
                 batch_size, ch, img_size, img_size = imgs.shape
                 imgs = imgs.to(self.device)
-                labels = labels.to(self.device)
-                # Algorithm 1 line 3: sample t uniformally for every example in the batch
                 t = torch.randint(0, self.timesteps, (batch_size,), device=self.device).long()
                 if self.num_classes is not None:
+                    labels = labels.to(self.device)
                     loss = self.diffusion.p_losses(imgs, t, y=labels)
                 else:
                     loss = self.diffusion.p_losses(imgs, t)
                 loss.backward()
                 self.optimizer.step()
+                self.lr_scheduler.step()
                 
                 print(
-                    "[Epoch %d/%d] [Batch %d/%d] [loss: %f]"
-                    % (epoch, num_epochs, step, len(self.dataloader), loss)
+                    "[Epoch %d|%d] [Batch %d|%d] [loss: %f] [lr: %f]"
+                    % (epoch, num_epochs, step, len(self.dataloader), loss, self.optimizer.state_dict()['param_groups'][0]['lr'])
                     )
     
                 # save generated images
