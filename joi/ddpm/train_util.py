@@ -14,7 +14,8 @@ class DiffusionTrainer:
                  timesteps, 
                  lr, 
                  weight_decay, 
-                 dataloader, 
+                 dataloader,
+                 lr_decay=False,
                  sample_interval=None, 
                  device=None, 
                  result_folder=None, 
@@ -23,6 +24,7 @@ class DiffusionTrainer:
         self.lr = lr
         self.steps = 0
         self.total_steps = None
+        self.lr_decay = lr_decay
         self.device = device or 'cuda' if torch.cuda.is_available() else 'cpu'
         self.diffusion = diffusion
         self.timesteps = timesteps
@@ -33,7 +35,7 @@ class DiffusionTrainer:
         self.num_classes = num_classes
         self.diffusion.to(self.device)
         
-    def lr_decay(self):
+    def _lr_upate(self):
         lr = self.lr * (1 - 0.9 * self.steps / self.total_steps)
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = lr
@@ -70,7 +72,8 @@ class DiffusionTrainer:
                     loss = self.diffusion.p_losses(imgs, t)
                 loss.backward()
                 self.optimizer.step()
-                self.lr_decay()
+                if self.lr_decay:
+                    self._lr_upate()
                 self.steps = epoch * len(self.dataloader) + step
                 
                 print(
