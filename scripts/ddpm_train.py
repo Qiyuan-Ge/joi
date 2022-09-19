@@ -13,7 +13,6 @@ def main():
     parser.add_argument("--lr", type=float, default=1e-4, help="adamw: learning rate")
     parser.add_argument("--wd", type=float, default=0.0, help="adamw: weight decay")
     parser.add_argument("--dropout", type=float, default=0.0, help="dropout rate")
-    parser.add_argument("--warm_up", type=int, default=8000, help="warm_up_steps")
     parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
     parser.add_argument("--channels", type=int, default=3, help="number of image channels")
     parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
@@ -86,7 +85,6 @@ def main():
                                     lr=arg.lr, 
                                     weight_decay=arg.wd, 
                                     dataloader=dataloader,
-                                    warm_up_steps=arg.warm_up,
                                     sample_interval=arg.sample_interval, 
                                     result_folder=res_path,
                                     num_classes=arg.num_classes,
