@@ -67,9 +67,9 @@ class DiffusionTrainer:
                 t = torch.randint(0, self.timesteps, (batch_size,), device=self.device).long()
                 if self.num_classes is not None:
                     labels = labels.to(self.device)
-                    loss = self.diffusion.p_losses(imgs, t, y=labels)
+                    loss = self.diffusion(imgs, t, y=labels)
                 else:
-                    loss = self.diffusion.p_losses(imgs, t)
+                    loss = self.diffusion(imgs, t)
                 loss.backward()
                 self.optimizer.step()
                 if self.lr_decay:
