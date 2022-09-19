@@ -1,18 +1,11 @@
 import os
 import numpy as np
 import torch
-from torch.optim.lr_scheduler import LambdaLR
 from torchvision.utils import save_image
 
 
 def reverse_transform(img):
     return (img + 1) * 0.5
-
-
-def rate(step, warmup):
-    if step == 0:
-        step = 1
-    return 10000 * (512 ** (-0.5) * min(step ** (-0.5), step * warmup ** (-1.5)))
 
 
 class DiffusionTrainer:
@@ -22,24 +15,28 @@ class DiffusionTrainer:
                  lr, 
                  weight_decay, 
                  dataloader, 
-                 warm_up_steps=8000, 
                  sample_interval=None, 
                  device=None, 
                  result_folder=None, 
                  num_classes=None,
                 ):
+        self.lr = lr
+        self.steps = 0
+        self.total_steps = None
         self.device = device or 'cuda' if torch.cuda.is_available() else 'cpu'
         self.diffusion = diffusion
         self.timesteps = timesteps
         self.optimizer = torch.optim.AdamW(self.diffusion.model.parameters(), lr=lr, weight_decay=weight_decay)
-        self.lr_scheduler = LambdaLR(
-            optimizer=self.optimizer, lr_lambda=lambda step: rate(step, warm_up_steps)
-        )
         self.dataloader = dataloader
         self.sample_interval = sample_interval
         self.result_folder = result_folder
         self.num_classes = num_classes
         self.diffusion.to(self.device)
+        
+    def lr_decay(self):
+        lr = self.lr * (1 - 0.9 * self.step / self.total_steps)
+        for param_group in self.optimizer.param_groups:
+            param_group["lr"] = lr
     
     def sample_and_save(self, img_size, channels, img_name):
         n_row, n_col = 10, 6
@@ -58,6 +55,7 @@ class DiffusionTrainer:
         save_image(gen_images, image_path, nrow=n_row) 
         
     def train(self, num_epochs):
+        self.total_steps = len(self.dataloader) * num_epochs
         for epoch in range(num_epochs):
             for step, batch in enumerate(self.dataloader):
                 self.optimizer.zero_grad()
@@ -72,7 +70,8 @@ class DiffusionTrainer:
                     loss = self.diffusion.p_losses(imgs, t)
                 loss.backward()
                 self.optimizer.step()
-                self.lr_scheduler.step()
+                self.lr_decay()
+                self.steps = epoch * len(self.dataloader) + step
                 
                 print(
                     "[Epoch %d|%d] [Batch %d|%d] [loss: %f] [lr: %f]"
@@ -80,9 +79,9 @@ class DiffusionTrainer:
                     )
     
                 # save generated images
-                milestone = epoch * len(self.dataloader) + step
-                if milestone != 0 and milestone % self.sample_interval == 0:
-                    self.sample_and_save(img_size, channels=ch, img_name=milestone)
+                if self.steps != 0 and self.steps % self.sample_interval == 0:
+                    self.sample_and_save(img_size, channels=ch, img_name=self.steps)
                     
         print("Train finished!")
+        self.steps = 0
                     
