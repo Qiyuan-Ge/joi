@@ -4,8 +4,15 @@
 <div align=center>
 <img src="https://user-images.githubusercontent.com/53368178/190867851-6d84fb48-ead7-47f1-90d4-4b71c7622396.png">
 </div>
-  
-### MNIST
+
+## Install
+````
+python pip install git+https://github.com/Qiyuan-Ge/joi.git
+````
+
+## Display
+
+#### MNIST
 - without guidence
 
 <div align=center>
@@ -26,7 +33,7 @@ python ddpm_train.py --bs=128 --lr=1e-4 --wd=1e-4 --dropout=0.1 --img_size=32 --
 python ddpm_train.py --bs=128 --lr=1e-4 --wd=1e-4 --dropout=0.1 --img_size=32 --channels=1 --timesteps=200 --dataset='mnist' --num_classes=10
 ````
 
-### Cifar10
+#### Cifar10
 - classifier free guidance
 
 <div align=center>
@@ -37,6 +44,11 @@ python ddpm_train.py --bs=128 --lr=1e-4 --wd=1e-4 --dropout=0.1 --img_size=32 --
 python ddpm_train.py --bs=128 --lr=1e-4 --wd=1e-4 --dropout=0.1 --img_size=32 --timesteps=1000 --num_classes=10
 ````
 
-### reference
-- https://lilianweng.github.io/posts/2021-07-11-diffusion-models/#:~:text=Diffusion%20models%20are%20inspired%20by%20non-equilibrium%20thermodynamics.%20They,to%20construct%20desired%20data%20samples%20from%20the%20noise.
-- https://huggingface.co/blog/annotated-diffusion
+## Reference
+````
+- Lil’Log
+  https://lilianweng.github.io/
+- annotated-diffusion
+  https://huggingface.co/blog/annotated-diffusion
+````
+
