@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from tqdm.auto import tqdm
 
@@ -30,7 +31,7 @@ def extract(a, t, x_shape):
     return out.reshape(batch_size, *((1,) * (len(x_shape) - 1))).to(t.device)
 
 
-class GaussianDiffusion:
+class GaussianDiffusion(nn.Module):
     def __init__(self, model, timesteps=1000, beta_schedule='cosine', loss_type="l2"):
         super().__init__()
         self.model = model
@@ -89,6 +90,9 @@ class GaussianDiffusion:
         predicted_noise = self.model(x_noisy, t, y)
 
         return self.loss(noise, predicted_noise)
+    
+    def forward(self, x_start, t, noise=None, y=None):
+        return self.p_losses(x_start, t, noise, y)
     
     @torch.no_grad()
     def p_sample(self, x, t, t_index, y=None):
