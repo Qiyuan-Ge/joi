@@ -34,7 +34,7 @@ class DiffusionTrainer:
         self.diffusion.to(self.device)
         
     def lr_decay(self):
-        lr = self.lr * (1 - 0.9 * self.step / self.total_steps)
+        lr = self.lr * (1 - 0.9 * self.steps / self.total_steps)
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = lr
     
