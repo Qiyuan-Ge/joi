@@ -41,7 +41,10 @@ class DiffusionTrainer:
             param_group["lr"] = lr
     
     def sample_and_save(self, img_size, channels, img_name):
-        n_row, n_col = 10, 10
+        if img_size <= 64:
+            n_row, n_col = 10, 10
+        else:
+            n_row, n_col = 4, 4
         if self.num_classes is not None:
             if self.num_classes <= n_row:
                 n_row = self.num_classes
