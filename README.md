@@ -10,13 +10,13 @@
 python pip install git+https://github.com/Qiyuan-Ge/joi.git
 ````
 
-## Display
+## Usage
 
 #### MNIST
 - without guidence
 
 <div align=center>
-<img src="https://user-images.githubusercontent.com/53368178/190886956-b83eaa4d-4154-42da-a40a-91f233a46e10.png">
+<img src="https://github.com/Qiyuan-Ge/joi/blob/main/samples/mnist_without_guidence.png">
 </div>
 
 ````
@@ -26,7 +26,7 @@ python ddpm_train.py --bs=128 --lr=1e-4 --wd=1e-4 --dropout=0.1 --img_size=32 --
 - classifier free guidance
 
 <div align=center>
-<img src="https://user-images.githubusercontent.com/53368178/190882823-17c86cdd-760d-430d-9686-feaf4cd2072c.png">
+<img src="https://github.com/Qiyuan-Ge/joi/blob/main/samples/mnist.png">
 </div>
 
 ````
@@ -37,11 +37,11 @@ python ddpm_train.py --bs=128 --lr=1e-4 --wd=1e-4 --dropout=0.1 --img_size=32 --
 - classifier free guidance
 
 <div align=center>
-<img src="https://user-images.githubusercontent.com/53368178/190882823-17c86cdd-760d-430d-9686-feaf4cd2072c.png">
+<img src="https://github.com/Qiyuan-Ge/joi/blob/main/samples/cifar-10.png">
 </div>
 
 ````
-python ddpm_train.py --bs=128 --lr=1e-4 --wd=1e-4 --dropout=0.1 --img_size=32 --timesteps=1000 --num_classes=10
+python ddpm_train.py --n_epochs=800 --bs=64 --lr=1e-4 --timesteps=1000 --wd=1e-4 --dropout=0.1 --num_classes=10
 ````
 
 ## Reference
