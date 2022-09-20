@@ -81,7 +81,7 @@ def main():
     
     res_path = pathlib.Path.cwd() / "result"
     res_path.mkdir(exist_ok = True)
-    print(f"image folder path: {res_path}")
+    print(f"result folder path: {res_path}")
 
     trainer = ddpm.DiffusionTrainer(diffusion, 
                                     timesteps=arg.timesteps, 
