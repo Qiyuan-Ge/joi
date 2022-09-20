@@ -7,7 +7,7 @@
 
 ## Install
 ````
-python pip install git+https://github.com/Qiyuan-Ge/joi.git
+pip install git+https://github.com/Qiyuan-Ge/joi.git
 ````
 
 ## Usage
