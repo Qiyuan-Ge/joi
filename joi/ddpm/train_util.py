@@ -2,6 +2,7 @@ import os
 import numpy as np
 import torch
 from torchvision.utils import save_image
+from joi.util import EMA
 
 
 def reverse_transform(img):
@@ -20,6 +21,7 @@ class DiffusionTrainer:
                  device=None, 
                  result_folder=None, 
                  num_classes=None,
+                 ema_decay=0.99,
                 ):
         self.lr = lr
         self.steps = 0
@@ -30,15 +32,22 @@ class DiffusionTrainer:
         self.timesteps = timesteps
         self.optimizer = torch.optim.AdamW(self.diffusion.model.parameters(), lr=lr, weight_decay=weight_decay)
         self.dataloader = dataloader
-        self.sample_interval = sample_interval
         self.result_folder = result_folder
+        self.sample_interval = sample_interval
         self.num_classes = num_classes
+        self.ema = EMA(self.diffusion.model, ema_decay)
         self.diffusion.to(self.device)
         
-    def _lr_upate(self):
+    def _lr_update(self):
         lr = self.lr * (1 - 0.9 * self.steps / self.total_steps)
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = lr
+            
+    def _ema_update(self, model):
+        print("saving model state ...")
+        self.ema.update(model)
+        model_path = os.path.join(self.result_folder, "model_ema.pt")
+        torch.save(self.ema.model_ema.state_dict(), model_path)
     
     def sample_and_save(self, img_size, channels, img_name):
         if img_size <= 64:
@@ -76,7 +85,7 @@ class DiffusionTrainer:
                 loss.backward()
                 self.optimizer.step()
                 if self.lr_decay:
-                    self._lr_upate()
+                    self._lr_update()
                 self.steps = epoch * len(self.dataloader) + step
                 
                 print(
@@ -87,6 +96,8 @@ class DiffusionTrainer:
                 # save generated images
                 if self.steps != 0 and self.steps % self.sample_interval == 0:
                     self.sample_and_save(img_size, channels=ch, img_name=self.steps)
+                    
+            self._ema_update(self.diffusion.model)
                     
         print("Train finished!")
         self.steps = 0
