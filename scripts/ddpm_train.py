@@ -19,10 +19,12 @@ def main():
     parser.add_argument("--num_classes", type=int, default=None, help="number of classes")
     parser.add_argument("--dataset", type=str, default='cifar10', help="mnist, cifar10, default: cifar10")
     parser.add_argument("--beta_schedule", type=str, default='cosine', help="beta schedule: cosine, linear, default: cosine")
-    parser.add_argument("--loss_type", type=str, default='l2', help="loss type: l1, l2, huber, default: l2")
+    parser.add_argument("--loss_type", type=str, default='l1', help="loss type: l1, l2, huber, default: l1")
     parser.add_argument("--lr_decay", type=bool, default=False, help="apply lr decay or not")
     parser.add_argument("--sample_interval", type=int, default=1000, help="interval between image sampling")
     parser.add_argument("--data_path", type=str, default='none', help="set your own data path")
+    parser.add_argument("--device", type=str, default='cuda', help="cuda or cpu, default: cuda")
+    parser.add_argument("--ema_decay", type=float, default=0.99, help="Exponential Moving Average, default: 0.99")
     arg = parser.parse_args()
     print(arg)
     
@@ -87,9 +89,11 @@ def main():
                                     weight_decay=arg.wd, 
                                     dataloader=dataloader,
                                     lr_decay=arg.lr_decay,
-                                    sample_interval=arg.sample_interval, 
+                                    sample_interval=arg.sample_interval,
+                                    device=arg.device,
                                     result_folder=res_path,
                                     num_classes=arg.num_classes,
+                                    ema_decay=arg.ema_decay,
                                     )
     trainer.train(arg.n_epochs)
 
