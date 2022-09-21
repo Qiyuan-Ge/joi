@@ -57,10 +57,12 @@ def create_model(img_size=64, in_channels=3, out_channels=None, num_classes=None
         raise ValueError(f"unsupported image size: {img_size}")
         
           
-def create_gaussian_diffusion(model, timesteps=1000, beta_schedule='cosine', loss_type="l2"):
-    diffusion = GaussianDiffusion(model, timesteps, beta_schedule, loss_type)
+def create_gaussian_diffusion(model, 
+                              timesteps=1000, 
+                              beta_schedule='cosine', 
+                              loss_type="l2"):
     
-    return diffusion
+    return GaussianDiffusion(model, timesteps, beta_schedule, loss_type)
 
 
 def create_model_and_diffusion(img_size, 
