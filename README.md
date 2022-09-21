@@ -20,7 +20,7 @@ pip install git+https://github.com/Qiyuan-Ge/joi.git
 </div>
 
 ````
-python ddpm_train.py --bs=128 --lr=1e-4 --wd=1e-4 --dropout=0.1 --img_size=32 --channels=1 --timesteps=200 --dataset='mnist'
+python ddpm_train.py --n_epochs=200 --bs=128 --lr=1e-4 --timesteps=500 --wd=1e-4 --dropout=0.1 --dataset='mnist' --lr_decay=True --channels=1
 ````
 
 - classifier free guidance
