@@ -30,7 +30,7 @@ python ddpm_train.py --bs=128 --lr=1e-4 --wd=1e-4 --dropout=0.1 --img_size=32 --
 </div>
 
 ````
-python ddpm_train.py --bs=128 --lr=1e-4 --wd=1e-4 --dropout=0.1 --img_size=32 --channels=1 --timesteps=200 --dataset='mnist' --num_classes=10
+python ddpm_train.py --n_epochs=200 --bs=128 --lr=1e-4 --timesteps=500 --wd=1e-4 --dropout=0.1 --num_classes=10 --dataset='mnist' --lr_decay=True --channels=1
 ````
 
 #### Cifar10
@@ -41,7 +41,7 @@ python ddpm_train.py --bs=128 --lr=1e-4 --wd=1e-4 --dropout=0.1 --img_size=32 --
 </div>
 
 ````
-python ddpm_train.py --n_epochs=800 --bs=64 --lr=1e-4 --timesteps=1000 --wd=1e-4 --dropout=0.1 --num_classes=10
+python ddpm_train.py --n_epochs=800 --bs=64 --lr=1e-4 --timesteps=1000 --wd=1e-4 --dropout=0.1 --num_classes=10 --lr_decay=True
 ````
 
 ## Reference
