@@ -16,7 +16,7 @@ pip install git+https://github.com/Qiyuan-Ge/joi.git
 - without guidence
 
 <div align=center>
-<img src="https://github.com/Qiyuan-Ge/joi/blob/main/samples/mnist_without_guidence.png">
+<img src="https://github.com/Qiyuan-Ge/joi/blob/main/samples/mnist_random.png">
 </div>
 
 ````
