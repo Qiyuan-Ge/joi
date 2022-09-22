@@ -15,6 +15,7 @@ def main():
     parser.add_argument("--dropout", type=float, default=0.0, help="dropout rate")
     parser.add_argument("--img_size", type=int, default=32, help="size of each image dimension")
     parser.add_argument("--channels", type=int, default=3, help="number of image channels")
+    parser.add_argument("--num_res_blocks", type=int, default=2, help="number of residual blocks")
     parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
     parser.add_argument("--num_classes", type=int, default=None, help="number of classes")
     parser.add_argument("--dataset", type=str, default='cifar10', help="mnist, cifar10, default: cifar10")
@@ -68,6 +69,7 @@ def main():
         
     model, diffusion = ddpm.create_model_and_diffusion(img_size=arg.img_size, 
                                                        in_channels=arg.channels,
+                                                       num_res_blocks=arg.num_res_blocks,
                                                        out_channels=arg.out_channels, 
                                                        timesteps=arg.timesteps, 
                                                        beta_schedule=arg.beta_schedule, 
@@ -77,11 +79,12 @@ def main():
                                                        )
     n_parameters = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f'number of learnable parameters: {n_parameters//1e6}M')            
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=arg.bs, shuffle=True)
     
     res_path = pathlib.Path.cwd() / "result"
     res_path.mkdir(exist_ok = True)
     print(f"result folder path: {res_path}")
+    
+    dataloader = torch.utils.data.DataLoader(dataset, batch_size=arg.bs, shuffle=True)
 
     trainer = ddpm.DiffusionTrainer(diffusion, 
                                     timesteps=arg.timesteps, 
