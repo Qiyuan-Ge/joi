@@ -50,5 +50,8 @@ python ddpm_train.py --n_epochs=800 --bs=64 --lr=1e-4 --timesteps=1000 --wd=1e-4
   https://lilianweng.github.io/posts/2021-07-11-diffusion-models/
 - annotated-diffusion
   https://huggingface.co/blog/annotated-diffusion
+- Improved Denoising Diffusion Probabilistic Models
+  https://arxiv.org/abs/2102.09672
+  https://github.com/openai/improved-diffusion
 ````
 
