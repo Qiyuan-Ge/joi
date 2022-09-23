@@ -27,7 +27,7 @@ class DiffusionTrainer:
         self.steps = 0
         self.total_steps = None
         self.lr_decay = lr_decay
-        self.device = device or 'cuda' if torch.cuda.is_available() else 'cpu'
+        self.device = device
         self.diffusion = diffusion
         self.timesteps = timesteps
         self.optimizer = torch.optim.AdamW(self.diffusion.model.parameters(), lr=lr, weight_decay=weight_decay)
