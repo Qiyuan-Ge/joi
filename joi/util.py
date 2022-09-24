@@ -25,3 +25,29 @@ class EMA:
         return self.decay * p1 + (1 - self.decay) * p2
     
     
+class Log:
+    def __init__(self):
+        self.data = {'size':0}
+    
+    def add(self, name_value, batch_size=None, value_mult=None):
+        if batch_size is not None:
+            self.data['size'] += batch_size
+        for i, (name, value) in enumerate(name_value.items()):
+            if value_mult is not None and i in value_mult: 
+                value *= batch_size
+            if name not in self.data:
+                self.data[name] = value
+            else:
+                self.data[name] += value
+    
+    def update(self, name_value):
+        for name, value in name_value.items():
+            self.data[name] = value
+    
+    def reset(self):
+        self.data = {'size':0}
+
+    def __getitem__(self, name):
+        return self.data[name]
+    
+    
