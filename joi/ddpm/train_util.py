@@ -2,7 +2,7 @@ import os
 import numpy as np
 import torch
 from torchvision.utils import save_image
-from joi.util import EMA
+from joi.util import EMA, Log
 
 
 def reverse_transform(img):
@@ -71,8 +71,10 @@ class DiffusionTrainer:
     def train(self, num_epochs):
         self.total_steps = len(self.dataloader) * num_epochs
         for epoch in range(num_epochs):
+            log = Log()
             for step, batch in enumerate(self.dataloader):
                 self.optimizer.zero_grad()
+                
                 imgs, labels = batch
                 batch_size, ch, img_size, img_size = imgs.shape
                 imgs = imgs.to(self.device)
@@ -82,17 +84,21 @@ class DiffusionTrainer:
                     loss = self.diffusion(imgs, t, y=labels)
                 else:
                     loss = self.diffusion(imgs, t)
+                    
                 loss.backward()
                 self.optimizer.step()
+                
+                log.add({'loss_sum':float(loss)}, batch_size, value_mult=[0])
+                log.update({'loss':float(loss), 'lr':self.optimizer.param_groups[0]['lr']})
+                self.steps = epoch * len(self.dataloader) + step
+                print(
+                    "[Epoch %d|%d] [Batch %d|%d] [loss %f|%f] [lr %f]"
+                    % (epoch, num_epochs, step, len(self.dataloader), log['loss'], log['loss_sum']/log['size'], log['lr'])
+                    )
+                
                 if self.lr_decay:
                     self._lr_update()
-                self.steps = epoch * len(self.dataloader) + step
-                
-                print(
-                    "[Epoch %d|%d] [Batch %d|%d] [loss: %f] [lr: %f]"
-                    % (epoch, num_epochs, step, len(self.dataloader), loss, self.optimizer.param_groups[0]['lr'])
-                    )
-    
+
                 # save generated images
                 if self.steps != 0 and self.steps % self.sample_interval == 0:
                     self.sample_and_save(img_size, channels=ch, img_name=self.steps)
