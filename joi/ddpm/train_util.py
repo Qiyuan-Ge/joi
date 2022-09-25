@@ -30,14 +30,14 @@ class DiffusionTrainer:
         self.timesteps = timesteps
         self.optimizer = torch.optim.AdamW(self.diffusion.model.parameters(), lr=lr, weight_decay=weight_decay)
         self.dataloader = dataloader
+        self.num_classes = num_classes
         self.result_folder = result_folder
         self.sample_interval = sample_interval
-        self.num_classes = num_classes
         self.ema = EMA(self.diffusion.model, ema_decay)
         self.diffusion.to(self.device)
         
-    def _lr_update(self):
-        lr = self.lr * (1 - 0.9 * self.steps / self.total_steps)
+    def _lr_update(self, steps):
+        lr = self.lr * (1 - 0.9 * steps / self.total_steps)
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = lr
             
@@ -48,10 +48,7 @@ class DiffusionTrainer:
         torch.save(self.ema.model_ema.state_dict(), model_path)
     
     def sample_and_save(self, img_size, channels, img_name):
-        if img_size <= 64:
-            n_row, n_col = 10, 10
-        else:
-            n_row, n_col = 4, 4
+        n_row, n_col = 10, 10
         if self.num_classes is not None:
             if self.num_classes <= n_row:
                 n_row = self.num_classes
@@ -89,17 +86,17 @@ class DiffusionTrainer:
                 log.add({'total_loss':float(loss)*batch_size, 'n_sample':batch_size})
                 log.update({'loss':float(loss), 'lr':self.optimizer.param_groups[0]['lr']})
                 print(
-                    "[Epoch %d|%d] [Batch %d|%d] [loss %f|%f] [lr %f]"
+                    "[Epoch %d|%d] [Batch %d|%d] [Loss %f|%f] [Lr %f]"
                     % (epoch, num_epochs, step, len(self.dataloader), log['loss'], log['total_loss']/log['n_sample'], log['lr'])
                     )
                 
-                self.steps = epoch * len(self.dataloader) + step
+                steps = epoch * len(self.dataloader) + step
                 if self.lr_decay:
-                    self._lr_update()
+                    self._lr_update(steps)
 
                 # save generated images
-                if self.steps != 0 and self.steps % self.sample_interval == 0:
-                    self.sample_and_save(img_size, channels=ch, img_name=self.steps)
+                if steps != 0 and steps % self.sample_interval == 0:
+                    self.sample_and_save(img_size, channels=ch, img_name=steps)
                     
             self._ema_update(self.diffusion.model)
                     
