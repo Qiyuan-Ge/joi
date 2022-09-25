@@ -27,14 +27,10 @@ class EMA:
     
 class Log:
     def __init__(self):
-        self.data = {'size':0}
+        self.data = {}
     
-    def add(self, name_value, batch_size=None, value_mult=None):
-        if batch_size is not None:
-            self.data['size'] += batch_size
-        for i, (name, value) in enumerate(name_value.items()):
-            if value_mult is not None and i in value_mult: 
-                value *= batch_size
+    def add(self, name_value):
+        for name, value in name_value.items():
             if name not in self.data:
                 self.data[name] = value
             else:
@@ -45,7 +41,7 @@ class Log:
             self.data[name] = value
     
     def reset(self):
-        self.data = {'size':0}
+        self.data = {}
 
     def __getitem__(self, name):
         return self.data[name]
