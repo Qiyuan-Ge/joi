@@ -24,8 +24,6 @@ class DiffusionTrainer:
                  ema_decay=0.99,
                 ):
         self.lr = lr
-        self.steps = 0
-        self.total_steps = None
         self.lr_decay = lr_decay
         self.device = device
         self.diffusion = diffusion
@@ -88,14 +86,14 @@ class DiffusionTrainer:
                 loss.backward()
                 self.optimizer.step()
                 
-                log.add({'loss_sum':float(loss)}, batch_size, value_mult=[0])
+                log.add({'total_loss':float(loss)*batch_size, 'n_sample':batch_size})
                 log.update({'loss':float(loss), 'lr':self.optimizer.param_groups[0]['lr']})
-                self.steps = epoch * len(self.dataloader) + step
                 print(
                     "[Epoch %d|%d] [Batch %d|%d] [loss %f|%f] [lr %f]"
-                    % (epoch, num_epochs, step, len(self.dataloader), log['loss'], log['loss_sum']/log['size'], log['lr'])
+                    % (epoch, num_epochs, step, len(self.dataloader), log['loss'], log['total_loss']/log['n_sample'], log['lr'])
                     )
                 
+                self.steps = epoch * len(self.dataloader) + step
                 if self.lr_decay:
                     self._lr_update()
 
@@ -106,5 +104,4 @@ class DiffusionTrainer:
             self._ema_update(self.diffusion.model)
                     
         print("Train finished!")
-        self.steps = 0
                     
