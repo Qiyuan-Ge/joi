@@ -5,7 +5,10 @@ from torchvision.utils import save_image
 from joi.util import EMA, Log
 
 
-def reverse_transform(img):
+def reverse_transform(img, clip=True):
+    if clip:
+        img = img.clamp(-1, 1)
+        
     return (img + 1) * 0.5
 
 
@@ -16,12 +19,12 @@ class DiffusionTrainer:
                  lr, 
                  weight_decay, 
                  dataloader,
-                 lr_decay=False,
+                 lr_decay=0.9,
                  sample_interval=None, 
                  device=None, 
                  result_folder=None, 
                  num_classes=None,
-                 ema_decay=0.99,
+                 ema_decay=0.95,
                 ):
         self.lr = lr
         self.lr_decay = lr_decay
@@ -37,7 +40,7 @@ class DiffusionTrainer:
         self.diffusion.to(self.device)
         
     def _lr_update(self, steps):
-        lr = self.lr * (1 - 0.9 * steps / self.total_steps)
+        lr = self.lr * (1 - self.lr_decay * steps / self.total_steps)
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = lr
             
@@ -59,7 +62,7 @@ class DiffusionTrainer:
             gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, labels)[-1]
         else:
             gen_images = self.diffusion.sample(img_size, n_row*n_col, channels)[-1]
-        gen_images = torch.clamp(reverse_transform(gen_images), 0, 1)
+        gen_images = reverse_transform(gen_images, clip=True)
         image_path = os.path.join(self.result_folder, f"sample-{img_name}.png")
         save_image(gen_images, image_path, nrow=n_row) 
         
@@ -91,7 +94,7 @@ class DiffusionTrainer:
                     )
                 
                 steps = epoch * len(self.dataloader) + step
-                if self.lr_decay:
+                if self.lr_decay is not None:
                     self._lr_update(steps)
 
                 # save generated images
