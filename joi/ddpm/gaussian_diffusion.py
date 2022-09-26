@@ -70,7 +70,7 @@ class GaussianDiffusion(nn.Module):
         
         return sqrt_alphas_cumprod_t * x_start + sqrt_one_minus_alphas_cumprod_t * noise
     
-    def loss(self, x, y):
+    def loss_func(self, x, y):
         if self.loss_type == 'l1':
             loss = F.l1_loss(x, y)
         elif self.loss_type == 'l2':
@@ -89,7 +89,7 @@ class GaussianDiffusion(nn.Module):
         x_noisy = self.q_sample(x_start, t, noise)
         predicted_noise = self.model(x_noisy, t, y)
 
-        return self.loss(noise, predicted_noise)
+        return self.loss_func(noise, predicted_noise)
     
     def forward(self, x_start, t, noise=None, y=None):
         return self.p_losses(x_start, t, noise, y)
