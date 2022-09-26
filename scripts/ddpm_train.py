@@ -44,9 +44,9 @@ def main():
             transform=T.Compose(
                 [T.Resize(arg.img_size), 
                  T.ToTensor(), 
-                 T.Lambda(lambda t: (t * 2) - 1)]
+                 T.Lambda(lambda t: (t * 2) - 1),]
                 ),
-        )
+            )
     elif arg.dataset == 'cifar10':
         if arg.data_path == 'none':
             root = "./dataset/Cifar10"
@@ -63,9 +63,9 @@ def main():
                 [T.Resize(arg.img_size), 
                  T.RandomHorizontalFlip(), 
                  T.ToTensor(), 
-                 T.Lambda(lambda t: (t * 2) - 1)]
+                 T.Lambda(lambda t: (t * 2) - 1),]
                 ),
-        )
+            )
         
     model, diffusion = ddpm.create_model_and_diffusion(img_size=arg.img_size, 
                                                        in_channels=arg.channels,
