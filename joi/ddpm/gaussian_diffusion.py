@@ -62,7 +62,7 @@ class GaussianDiffusion(nn.Module):
         self.model.to(device)
         self.device = next(self.model.parameters()).device
     
-    # q(x_t | x_0)        
+    # q(x_t|x_0)        
     def q_sample(self, x_start, t, noise=None): 
         if noise is None:
             noise = torch.randn_like(x_start)
