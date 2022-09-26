@@ -1,9 +1,9 @@
 import pathlib
 import argparse
 import torch
-import torchvision.datasets as datasets
 import torchvision.transforms as T
 import joi.ddpm as ddpm
+import joi.datasets as datasets
 
 def main():
     parser = argparse.ArgumentParser()
@@ -39,7 +39,6 @@ def main():
             
         dataset = datasets.MNIST(
             root=root,
-            train=True,
             download=True,
             transform=T.Compose(
                 [T.Resize(arg.img_size), 
@@ -57,7 +56,6 @@ def main():
             
         dataset = datasets.CIFAR10(
             root=root,
-            train=True,
             download=True,
             transform=T.Compose(
                 [T.Resize(arg.img_size), 
