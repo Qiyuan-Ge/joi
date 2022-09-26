@@ -51,18 +51,19 @@ class GaussianDiffusion(nn.Module):
         alphas_cumprod_prev = F.pad(alphas_cumprod[:-1], (1, 0), value=1.0)
         self.sqrt_recip_alphas = torch.sqrt(1.0 / alphas)
         
-        # calculations for diffusion q(x_t | x_{t-1}) and others
+        # calculations for q(x_t|x_0)
         self.sqrt_alphas_cumprod = torch.sqrt(alphas_cumprod)
         self.sqrt_one_minus_alphas_cumprod = torch.sqrt(1. - alphas_cumprod)
         
-        # calculations for posterior q(x_{t-1} | x_t, x_0)
+        # calculations for posterior q(x_{t-1}|x_t, x_0)
         self.posterior_variance = self.betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
     
     def to(self, device):
         self.model.to(device)
         self.device = next(self.model.parameters()).device
-            
-    def q_sample(self, x_start, t, noise=None):
+    
+    # q(x_t | x_0)        
+    def q_sample(self, x_start, t, noise=None): 
         if noise is None:
             noise = torch.randn_like(x_start)
         sqrt_alphas_cumprod_t = extract(self.sqrt_alphas_cumprod, t, x_start.shape)
@@ -81,7 +82,8 @@ class GaussianDiffusion(nn.Module):
             NotImplementedError()
             
         return loss
-        
+    
+    # L_t^simple    
     def p_losses(self, x_start, t, noise=None, y=None):
         if noise is None:
             noise = torch.randn_like(x_start)
@@ -94,6 +96,7 @@ class GaussianDiffusion(nn.Module):
     def forward(self, x_start, t, noise=None, y=None):
         return self.p_losses(x_start, t, noise, y)
     
+    # q(x_{t-1}|x_t, x_0)
     @torch.no_grad()
     def p_sample(self, x, t, t_index, y=None):
         betas_t = extract(self.betas, t, x.shape)
@@ -109,7 +112,8 @@ class GaussianDiffusion(nn.Module):
             noise = torch.randn_like(x)
             
             return model_mean + torch.sqrt(posterior_variance_t) * noise
-        
+    
+    # x_t -> x_{t-1} -> ... -> x_0
     @torch.no_grad()
     def p_sample_loop(self, shape, y):
         b = shape[0]
@@ -125,4 +129,4 @@ class GaussianDiffusion(nn.Module):
     
     @torch.no_grad()
     def sample(self, image_size, batch_size=16, channels=3, labels=None):
-        return  self.p_sample_loop(shape=(batch_size, channels, image_size, image_size), y=labels)
+        return self.p_sample_loop(shape=(batch_size, channels, image_size, image_size), y=labels)
