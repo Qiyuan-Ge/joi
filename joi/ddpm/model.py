@@ -65,9 +65,6 @@ class Upsample(nn.Module):
     An upsampling layer with an optional convolution.
 
     :param channels: channels in the inputs and outputs.
-    :param use_conv: a bool determining if a convolution is applied.
-    :param dims: determines if the signal is 1D, 2D, or 3D. If 3D, then
-                 upsampling occurs in the inner-two dimensions.
     """
 
     def __init__(self, channels):
@@ -88,9 +85,6 @@ class Downsample(nn.Module):
     A downsampling layer with an optional convolution.
 
     :param channels: channels in the inputs and outputs.
-    :param use_conv: a bool determining if a convolution is applied.
-    :param dims: determines if the signal is 1D, 2D, or 3D. If 3D, then
-                 downsampling occurs in the inner-two dimensions.
     """
 
     def __init__(self, channels):
@@ -112,11 +106,6 @@ class ResBlock(TimestepBlock):
     :param emb_channels: the number of timestep embedding channels.
     :param dropout: the rate of dropout.
     :param out_channels: if specified, the number of out channels.
-    :param use_conv: if True and out_channels is specified, use a spatial
-        convolution instead of a smaller 1x1 convolution to change the
-        channels in the skip connection.
-    :param dims: determines if the signal is 1D, 2D, or 3D.
-    :param use_checkpoint: if True, use gradient checkpointing on this module.
     """
 
     def __init__(
