@@ -1,10 +1,20 @@
 import os
-import torch
+import zipfile
 from PIL import Image
+import torch
 import torchvision.datasets as datasets
 
 __all__ = ['MNIST', 'CIFAR10', 'CelebA']
 
+def unzip_file(zip_src, tgt_dir):
+    if zipfile.is_zipfile(zip_src):
+        fz = zipfile.ZipFile(zip_src, 'r')
+        for file in fz.namelist():
+            fz.extract(file, tgt_dir)       
+    else:
+        raise RuntimeError("This is not zip file.")
+
+        
 def MNIST(root, download, transform):
     return datasets.MNIST(root=root, train=True, download=download, transform=transform)
 
@@ -22,10 +32,17 @@ class CelebA:
             type (str, optional): 'identity' or 'attr'. Defaults to 'identity'.
             transform (torchvision.transforms, optional): torchvision.transforms. Defaults to None.
         """        
-        self.root = img_dir
-        self.img_dir = os.path.join(self.root, 'Img', 'img_align_celeba', 'img_align_celeba')
-        self.ann_dir = os.path.join(self.root, 'Anno')
+        base_dir = os.path.join(root, 'Img')
+        zfile_path = os.path.join(base_dir, 'img_align_celeba.zip')
+        self.img_dir = os.path.join(base_dir, 'img_align_celeba', 'img_align_celeba')
+        if os.path.exists(self.img_dir):
+            pass
+        elif os.path.exists(zfile_path):
+            unzip_file(zfile_path, base_dir)
+        else:
+            raise RuntimeError("Dataset not found.")
         self.imgs = os.listdir(img_dir)
+        self.ann_dir = os.path.join(self.root, 'Anno')
         if type == 'identity':
             self.img2id = {}
             with open(os.path.join(ann_dir, 'identity_CelebA.txt'), 'r') as f:
