@@ -34,7 +34,8 @@ class DiffusionTrainer:
         self.optimizer = torch.optim.AdamW(self.diffusion.model.parameters(), lr=lr, weight_decay=weight_decay)
         self.dataloader = dataloader
         self.num_classes = num_classes
-        self.result_folder = result_folder
+        self.image_folder = os.mkdir(os.path.join(result_folder, 'image'), exist_ok=True)
+        self.model_folder = os.mkdir(os.path.join(result_folder, 'model'), exist_ok=True)
         self.sample_interval = sample_interval
         self.ema = EMA(self.diffusion.model, ema_decay)
         self.diffusion.to(self.device)
@@ -47,7 +48,7 @@ class DiffusionTrainer:
     def _ema_update(self, model):
         print("saving model state ...")
         self.ema.update(model)
-        model_path = os.path.join(self.result_folder, "model_ema.pt")
+        model_path = os.path.join(self.model_folder, "model_ema.pt")
         torch.save(self.ema.model_ema.state_dict(), model_path)
     
     def sample_and_save(self, img_size, channels, img_name):
@@ -63,7 +64,7 @@ class DiffusionTrainer:
         else:
             gen_images = self.diffusion.sample(img_size, n_row*n_col, channels)[-1]
         gen_images = reverse_transform(gen_images, clip=True)
-        image_path = os.path.join(self.result_folder, f"sample-{img_name}.png")
+        image_path = os.path.join(self.image_folder, f"sample-{img_name}.png")
         save_image(gen_images, image_path, nrow=n_row) 
         
     def train(self, num_epochs):
