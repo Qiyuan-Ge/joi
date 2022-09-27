@@ -35,7 +35,7 @@ class CelebA:
         ann_dir = os.path.join(root, 'Anno')
         base_dir = os.path.join(root, 'Img')
         zfile_path = os.path.join(base_dir, 'img_align_celeba.zip')
-        self.img_dir = os.path.join(base_dir, 'img_align_celeba', 'img_align_celeba')
+        self.img_dir = os.path.join(base_dir, 'img_align_celeba')
         if os.path.exists(self.img_dir):
             pass
         elif os.path.exists(zfile_path):
