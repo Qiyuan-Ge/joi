@@ -30,11 +30,9 @@ def main():
     print(arg)
     
     if arg.data_path == 'none':
-        dataset_path = pathlib.Path("./dataset")
-        dataset_path.mkdir(exist_ok=True)
         root = f"./dataset/{arg.dataset}"
         data_path = pathlib.Path(root)
-        data_path.mkdir(exist_ok=True)
+        data_path.mkdir(exist_ok=True, parents=True)
     else:
         root = arg.data_path
     
@@ -85,7 +83,7 @@ def main():
     print(f'number of learnable parameters: {n_parameters//1e6}M')            
     
     res_path = pathlib.Path.cwd() / "result"
-    res_path.mkdir(exist_ok = True)
+    res_path.mkdir(exist_ok=True)
     print(f"result folder path: {res_path}")
     
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=arg.bs, shuffle=True)
