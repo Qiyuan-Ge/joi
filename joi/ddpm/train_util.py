@@ -34,8 +34,8 @@ class DiffusionTrainer:
         self.optimizer = torch.optim.AdamW(self.diffusion.model.parameters(), lr=lr, weight_decay=weight_decay)
         self.dataloader = dataloader
         self.num_classes = num_classes
-        self.image_folder = os.mkdir(os.path.join(result_folder, 'image'), exist_ok=True)
-        self.model_folder = os.mkdir(os.path.join(result_folder, 'model'), exist_ok=True)
+        self.image_folder = os.makedirs(os.path.join(result_folder, 'image'), exist_ok=True)
+        self.model_folder = os.makedirs(os.path.join(result_folder, 'model'), exist_ok=True)
         self.sample_interval = sample_interval
         self.ema = EMA(self.diffusion.model, ema_decay)
         self.diffusion.to(self.device)
