@@ -32,6 +32,7 @@ class CelebA:
             type (str, optional): 'identity' or 'attr'. Defaults to 'identity'.
             transform (torchvision.transforms, optional): torchvision.transforms. Defaults to None.
         """        
+        ann_dir = os.path.join(root, 'Anno')
         base_dir = os.path.join(root, 'Img')
         zfile_path = os.path.join(base_dir, 'img_align_celeba.zip')
         self.img_dir = os.path.join(base_dir, 'img_align_celeba', 'img_align_celeba')
@@ -41,8 +42,7 @@ class CelebA:
             unzip_file(zfile_path, base_dir)
         else:
             raise RuntimeError("Dataset not found.")
-        self.imgs = os.listdir(img_dir)
-        self.ann_dir = os.path.join(self.root, 'Anno')
+        self.imgs = os.listdir(self.img_dir)
         if type == 'identity':
             self.img2id = {}
             with open(os.path.join(ann_dir, 'identity_CelebA.txt'), 'r') as f:
