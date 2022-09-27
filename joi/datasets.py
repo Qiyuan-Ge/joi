@@ -14,16 +14,17 @@ def CIFAR10(root, download, transform):
     
 
 class CelebA:
-    def __init__(self, img_dir, ann_dir, type='identity', transform=None):
+    def __init__(self, root, type='identity', transform=None):
         """CelebA Dataset http://personal.ie.cuhk.edu.hk/~lz013/projects/CelebA.html
 
         Args:
-            img_dir (str): image folder path
-            ann_dir (str): anno folder path
+            root (str): CelebA Dataset folder path
             type (str, optional): 'identity' or 'attr'. Defaults to 'identity'.
             transform (torchvision.transforms, optional): torchvision.transforms. Defaults to None.
         """        
-        self.img_dir = img_dir
+        self.root = img_dir
+        self.img_dir = os.path.join(self.root, 'Img', 'img_align_celeba', 'img_align_celeba')
+        self.ann_dir = os.path.join(self.root, 'Anno')
         self.imgs = os.listdir(img_dir)
         if type == 'identity':
             self.img2id = {}
