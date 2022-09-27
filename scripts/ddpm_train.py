@@ -18,7 +18,7 @@ def main():
     parser.add_argument("--num_res_blocks", type=int, default=2, help="number of residual blocks")
     parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
     parser.add_argument("--num_classes", type=int, default=None, help="number of classes")
-    parser.add_argument("--dataset", type=str, default='cifar10', help="mnist, cifar10, default: cifar10")
+    parser.add_argument("--dataset", type=str, default='cifar10', help="MNIST, CIFAR10, CelebA, default: CIFAR10")
     parser.add_argument("--beta_schedule", type=str, default='cosine', help="beta schedule: cosine, linear, default: cosine")
     parser.add_argument("--loss_type", type=str, default='l1', help="loss type: l1, l2, huber, default: l1")
     parser.add_argument("--lr_decay", type=float, default=0.9, help="apply lr decay or not")
@@ -29,36 +29,42 @@ def main():
     arg = parser.parse_args()
     print(arg)
     
-    if arg.dataset == 'mnist':
-        if arg.data_path == 'none':
-            root = "./dataset/MNIST"
-            data_path = pathlib.Path(root)
-            data_path.mkdir(exist_ok=True)
-        else:
-            root = arg.data_path
-            
+    if arg.data_path == 'none':
+        dataset_path = pathlib.Path("./dataset")
+        dataset_path.mkdir(exist_ok=True)
+        root = f"./dataset/{arg.dataset}"
+        data_path = pathlib.Path(root)
+        data_path.mkdir(exist_ok=True)
+    else:
+        root = arg.data_path
+    
+    if arg.dataset == 'MNIST':     
         dataset = datasets.MNIST(
             root=root,
             download=True,
             transform=T.Compose(
-                [T.Resize(arg.img_size), 
+                [T.Resize((arg.img_size, arg.img_size)), 
                  T.ToTensor(), 
                  T.Lambda(lambda t: (t * 2) - 1),]
                 ),
             )
-    elif arg.dataset == 'cifar10':
-        if arg.data_path == 'none':
-            root = "./dataset/Cifar10"
-            data_path = pathlib.Path(root)
-            data_path.mkdir(exist_ok=True)
-        else:
-            root = arg.data_path
-            
+    elif arg.dataset == 'CIFAR10':
         dataset = datasets.CIFAR10(
             root=root,
             download=True,
             transform=T.Compose(
-                [T.Resize(arg.img_size), 
+                [T.Resize((arg.img_size, arg.img_size)), 
+                 T.RandomHorizontalFlip(), 
+                 T.ToTensor(), 
+                 T.Lambda(lambda t: (t * 2) - 1),]
+                ),
+            )
+    elif arg.dataset == 'CelebA':
+        dataset = datasets.CelebA(
+            root=root,
+            type='identity',
+            transform=T.Compose(
+                [T.Resize((arg.img_size, arg.img_size)), 
                  T.RandomHorizontalFlip(), 
                  T.ToTensor(), 
                  T.Lambda(lambda t: (t * 2) - 1),]
