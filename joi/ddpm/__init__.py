@@ -1,4 +1,4 @@
-from .model import Unet
+from .model import Unet, SuperResModel
 from .gaussian_diffusion import GaussianDiffusion
 from .train_util import DiffusionTrainer
 
@@ -79,3 +79,30 @@ def create_model_and_diffusion(img_size,
     diffusion = create_gaussian_diffusion(model, timesteps, beta_schedule, loss_type)
     
     return model, diffusion
+
+
+def create_sr_model(resolution="64->256", in_channels=3, num_res_blocks=3, out_channels=None, num_classes=None, dropout=0): 
+    if resolution == "64->128":
+        return SuperResModel(in_channels,
+                             model_channels=128,
+                             out_channels=out_channels,
+                             num_res_blocks=num_res_blocks,
+                             attention_resolutions=(16,),
+                             dropout=dropout,
+                             channel_mult=(1, 2, 4, 8, 8),
+                             num_classes=num_classes,
+                             num_heads=8,
+                             num_heads_upsample=-1,
+                            )
+    elif resolution == "64->256":
+        return SuperResModel(in_channels,
+                             model_channels=128,
+                             out_channels=out_channels,
+                             num_res_blocks=num_res_blocks,
+                             attention_resolutions=(16,),
+                             dropout=dropout,
+                             channel_mult=(1, 2, 4, 4, 8, 8),
+                             num_classes=num_classes,
+                             num_heads=8,
+                             num_heads_upsample=-1,
+                            )
