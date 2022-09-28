@@ -341,3 +341,20 @@ class Unet(nn.Module):
             h = module(cat_in, emb)
         
         return self.out(h)
+
+    
+class SuperResModel(Unet):
+    """
+    p(x_{t-1}|x_t, z_0)
+    Unet model performs super-resolution.
+    condition on a low resolution image z_0.
+    """    
+    def __init__(self, in_channels, *args, **kwargs):
+        super().__init__(in_channels * 2, *args, **kwargs)
+        
+    def forward(self, x, timesteps, low_res=None, y=None):
+        _, _, new_h, new_w = x.shape
+        upsampled = F.interpolate(low_res, (new_h, new_w), mode="bilinear")
+        x = torch.cat([x, upsampled], dim=1)
+        
+        return super().forward(x, timesteps, y)
