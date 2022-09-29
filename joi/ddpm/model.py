@@ -2,7 +2,6 @@ from abc import abstractmethod
 
 import math
 
-import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -343,7 +342,7 @@ class Unet(nn.Module):
         return self.out(h)
 
     
-class SuperResModel(Unet):
+class SuperResUnet(Unet):
     """
     p(x_{t-1}|x_t, z_0)
     Unet model performs super-resolution.
@@ -352,9 +351,23 @@ class SuperResModel(Unet):
     def __init__(self, in_channels, *args, **kwargs):
         super().__init__(in_channels * 2, *args, **kwargs)
         
-    def forward(self, x, timesteps, low_res=None, y=None):
+    def forward(self, x, timesteps, low_res, y=None):
         _, _, new_h, new_w = x.shape
         upsampled = F.interpolate(low_res, (new_h, new_w), mode="bilinear")
         x = torch.cat([x, upsampled], dim=1)
         
         return super().forward(x, timesteps, y)
+    
+    
+class InpaintUnet(Unet):
+    """
+    A Unet which can perform inpainting.
+    """
+    def __init__(self, in_channels, *args, **kwargs):
+        super().__init__(in_channels * 2 + 1, *args, **kwargs)
+
+    def forward(self, x, timesteps, inpaint_image, inpaint_mask, y=None):
+        x = torch.cat([x, inpaint_image * inpaint_mask, inpaint_mask], dim=1)
+    
+        return super().forward(x, timesteps, y)
+           
