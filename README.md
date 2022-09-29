@@ -10,7 +10,7 @@
 pip install git+https://github.com/Qiyuan-Ge/joi.git
 ````
 
-## Unconditional and Conditional Generation
+## Image Generation
 
 #### MNIST
 - without guidence
@@ -48,7 +48,7 @@ python ddpm_train.py --n_epochs=800 --bs=64 --lr=1e-4 --timesteps=1000 --wd=1e-4
 
 ## Image Inpainting
 
-## Text to Image
+## Text-to-Image Generation
 
 ## Reference
 ````
