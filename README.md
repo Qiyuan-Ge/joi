@@ -63,5 +63,7 @@ python ddpm_train.py --n_epochs=800 --bs=64 --lr=1e-4 --timesteps=1000 --wd=1e-4
   https://arxiv.org/abs/2106.15282
 - GLIDE: Towards Photorealistic Image Generation and Editing with Text-Guided Diffusion Models
   https://arxiv.org/abs/2112.10741
+- Photorealistic Text-to-Image Diffusion Models with Deep Language Understanding
+- Hierarchical Text-Conditional Image Generation with CLIP Latents
 ````
 
