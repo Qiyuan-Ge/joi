@@ -222,8 +222,8 @@ class Unet(nn.Module):
         will be used.
     :param dropout: the dropout probability.
     :param channel_mult: channel multiplier for each level of the UNet.
-    :param num_classes: if specified (as an int), then this model will be
-        class-conditional with `num_classes` classes.
+    :param condition: unconditinal, class-conditional or text-conditional.
+    :param num_classes: must be speciefied, if this model is class-conditional.
     :param num_heads: the number of attention heads in each attention layer.
     """
 
@@ -383,6 +383,7 @@ class SuperResUnet(Unet):
 class InpaintUnet(Unet):
     """
     A Unet which can perform inpainting.
+    condition on a inpaint_image and inpaint_mask.
     """
     def __init__(self, in_channels, *args, **kwargs):
         super().__init__(in_channels * 2 + 1, *args, **kwargs)
