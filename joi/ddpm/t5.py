@@ -26,14 +26,12 @@ def create_mask(txt, pad=PAD_id):
     return src_pad_mask
 
 
-def tokenize(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, device='cuda', return_attn_mask=False):
-    if not torch.cuda.is_available():
-        device = 'cpu'
+def tokenize(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, return_attn_mask=False):
     tokenizer = create_tokenizer(name)
     encoded = tokenizer.batch_encode_plus(texts, return_tensors="pt", padding='longest', max_length=max_len, truncation=True)
-    input_ids = encoded.input_ids.to(device)
+    input_ids = encoded.input_ids
     if return_attn_mask:
-        attn_mask = create_mask(encoded.attention_mask.to(device))
+        attn_mask = create_mask(encoded.attention_mask)
         return input_ids, attn_mask
     else:
         return input_ids
