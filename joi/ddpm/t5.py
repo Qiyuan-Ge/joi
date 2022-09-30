@@ -19,6 +19,8 @@ def create_mask(src, pad=0): # src (b, l1)
 
 
 def tokenize(texts, name="t5-small", max_len=256, device='cuda', return_attn_mask=False):
+    if not torch.cuda.is_available():
+        device = 'cpu'
     tokenizer = create_tokenizer(name)
     encoded = tokenizer.batch_encode_plus(texts, return_tensors="pt", padding='longest', max_length=max_len, truncation=True)
     input_ids = encoded.input_ids.to(device)
