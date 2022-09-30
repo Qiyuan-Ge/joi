@@ -15,5 +15,5 @@ def collate_fn_t5(batch):
     return img_batch, input_ids
     
          
-def Txt2ImgDataloader(dataset, batch_size, shuffle=True, num_workers=num_workers, collate_fn=collate_fn_t5):
+def Txt2ImgDataloader(dataset, batch_size, shuffle=True, num_workers=0, collate_fn=collate_fn_t5):
     return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=collate_fn)
