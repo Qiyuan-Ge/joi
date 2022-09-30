@@ -1,5 +1,5 @@
 import transformers
-from transformers import T5Tokenizer, T5EncoderModel
+from transformers import T5Tokenizer, T5EncoderModel, T5Config
 
 transformers.logging.set_verbosity_error()
 
@@ -12,9 +12,12 @@ def create_tokenizer(name=DEFAULT_T5_NAME):
     return T5Tokenizer.from_pretrained(name, model_max_length=MAX_LENGTH)
 
 
-def create_encoder(name=DEFAULT_T5_NAME):
-    return T5EncoderModel.from_pretrained(name)
-
+def create_encoder(name=DEFAULT_T5_NAME, pretrained=True):
+    if pretrained:
+        return T5EncoderModel.from_pretrained(name)
+    else:
+        return T5EncoderModel(T5Config.from_pretrained(name))
+        
 
 def create_mask(txt, pad=PAD_id):
     src_pad = txt != pad
