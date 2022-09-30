@@ -36,10 +36,12 @@ class TimeEmbedding(nn.Module):
 
 
 class TextEmbedding(nn.Module):
-    def __init__(self, out_dim, model_name='t5-small'):
+    def __init__(self, out_dim, model_name='t5-base'):
         super().__init__()
         if model_name == 't5-small':
             in_dim = 512
+        elif model_name == 't5-base':
+            in_dim = 768
         self.t5 = create_encoder(model_name)
         self.proj = nn.Linear(in_dim, out_dim)
         
@@ -48,7 +50,7 @@ class TextEmbedding(nn.Module):
         with torch.no_grad():
             output = self.t5(input_ids=token_ids, attention_mask=create_mask(token_ids))
             encoded_text = output.last_hidden_state.detach()
-            encoded_text = encoded_text[token_ids==1] #EOS_id = 1
+            encoded_text = encoded_text[token_ids==1] # EOS_id = 1
         
         return self.proj(encoded_text)
         
@@ -237,6 +239,7 @@ class Unet(nn.Module):
         dropout=0,
         channel_mult=(1, 2, 4, 8),
         condition=None,
+        text_model_name='t5-base',
         num_classes=None,
         num_heads=4,
         num_heads_upsample=-1,
@@ -270,7 +273,7 @@ class Unet(nn.Module):
             if condition == 'class':
                 self.cond_emb = nn.Embedding(num_classes, time_embed_dim)
             elif condition == 'text':
-                self.cond_emb = TextEmbedding(time_embed_dim)
+                self.cond_emb = TextEmbedding(time_embed_dim, text_model_name)
 
         self.input_blocks = nn.ModuleList(
             [
