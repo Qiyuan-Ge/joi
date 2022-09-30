@@ -1,19 +1,23 @@
 import torch
 from torch.utils.data import DataLoader
-from joi.ddpm.t5 import tokenize
+from joi.ddpm.t5 import tokenize, DEFAULT_T5_NAME
 
 
-def collate_fn_t5(batch):
-    img_batch = []
-    txt_batch = []
-    for img, txt in batch:
-        img_batch.append(img.unsqueeze(0))
-        txt_batch.append(txt)
-    img_batch = torch.cat(img_batch, dim=0)
-    input_ids = tokenize(txt_batch)
+class collate_fn:
+    def __init__(self, text_model_name=DEFAULT_T5_NAME):
+        self.text_model_name = text_model_name
     
-    return img_batch, input_ids
+    def __call__(self, batch):
+        img_batch = []
+        txt_batch = []
+        for img, txt in batch:
+            img_batch.append(img.unsqueeze(0))
+            txt_batch.append(txt)
+        img_batch = torch.cat(img_batch, dim=0)
+        input_ids = tokenize(txt_batch, name=self.text_model_name)
+
+        return img_batch, input_ids
     
          
-def Txt2ImgDataloader(dataset, batch_size, shuffle=True, num_workers=0, collate_fn=collate_fn_t5, pin_memory=False):
-    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=collate_fn, pin_memory=pin_memory)
+def Txt2ImgDataloader(dataset, batch_size, shuffle=True, num_workers=0, text_model_name=DEFAULT_T5_NAME, pin_memory=False):
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle, num_workers=num_workers, collate_fn=collate_fn(text_model_name), pin_memory=pin_memory)
