@@ -1,24 +1,29 @@
+import transformers
 from transformers import T5Tokenizer, T5EncoderModel
+
+transformers.logging.set_verbosity_error()
 
 PAD_id = 0
 EOS_id = 1
+MAX_LENGTH = 256
+DEFAULT_T5_NAME = "t5-base"
 
-def create_tokenizer(name="t5-small"):
-    return T5Tokenizer.from_pretrained(name)
+def create_tokenizer(name=DEFAULT_T5_NAME):
+    return T5Tokenizer.from_pretrained(name, model_max_length=MAX_LENGTH)
 
 
-def create_encoder(name="t5-small"):
+def create_encoder(name=DEFAULT_T5_NAME):
     return T5EncoderModel.from_pretrained(name)
 
 
-def create_mask(src, pad=0): # src (b, l1)
-    src_pad = src != pad
-    src_pad_mask = src_pad.unsqueeze(1).expand(-1, src.shape[1], -1)
+def create_mask(txt, pad=PAD_id):
+    src_pad = txt != pad
+    src_pad_mask = src_pad.unsqueeze(1).expand(-1, txt.shape[1], -1)
 
     return src_pad_mask
 
 
-def tokenize(texts, name="t5-small", max_len=256, device='cuda', return_attn_mask=False):
+def tokenize(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, device='cuda', return_attn_mask=False):
     if not torch.cuda.is_available():
         device = 'cpu'
     tokenizer = create_tokenizer(name)
@@ -31,4 +36,3 @@ def tokenize(texts, name="t5-small", max_len=256, device='cuda', return_attn_mas
         return input_ids
 
 
-    
