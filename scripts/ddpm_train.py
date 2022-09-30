@@ -2,6 +2,7 @@ import pathlib
 import argparse
 import torch
 import torchvision.transforms as T
+import joi
 import joi.ddpm as ddpm
 import joi.datasets as datasets
 
@@ -27,6 +28,7 @@ def main():
     parser.add_argument("--data_path", type=str, default='none', help="set your own data path")
     parser.add_argument("--device", type=str, default='cuda', help="cuda or cpu, default: cuda")
     parser.add_argument("--ema_decay", type=float, default=0.99, help="Exponential Moving Average, default: 0.99")
+    parser.add_argument("--num_workers", type=int, default=0, help="how many subprocesses to use for data loading, default: 0")
     arg = parser.parse_args()
     print(arg)
     
@@ -69,6 +71,20 @@ def main():
                  T.Lambda(lambda t: (t * 2) - 1),]
                 ),
             )
+    elif arg.dataset == 'coco2017':
+        dataset = datasets.Coco(
+            root=root,
+            dataType='train2017', 
+            annType='captions', 
+            transform=T.Compose(
+                [T.Resize((arg.img_size, arg.img_size)), 
+                 T.RandomHorizontalFlip(), 
+                 T.ToTensor(), 
+                 T.Lambda(lambda t: (t * 2) - 1),]
+                ),
+            )
+        else:
+            raise ValueError('Please select from MNIST, CIFAR10, CelebA, coco2017')
 
         
     model, diffusion = ddpm.create_model_and_diffusion(img_size=arg.img_size, 
@@ -89,7 +105,10 @@ def main():
     res_path.mkdir(exist_ok=True)
     print(f"result folder path: {res_path}")
     
-    dataloader = torch.utils.data.DataLoader(dataset, batch_size=arg.bs, shuffle=True)
+    if arg.condition == 'text':
+        dataloader = joi.dataloader.Txt2ImgDataloader(dataset, batch_size=arg.bs, shuffle=True, num_workers=arg.num_workers)
+    else:
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=arg.bs, shuffle=True, num_workers=arg.num_workers)
 
     trainer = ddpm.Trainer(diffusion, 
                            timesteps=arg.timesteps, 
