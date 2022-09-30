@@ -17,8 +17,9 @@ def main():
     parser.add_argument("--channels", type=int, default=3, help="number of image channels")
     parser.add_argument("--num_res_blocks", type=int, default=2, help="number of residual blocks")
     parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
-    parser.add_argument("--num_classes", type=int, default=None, help="number of classes")
-    parser.add_argument("--dataset", type=str, default='cifar10', help="MNIST, CIFAR10, CelebA, default: CIFAR10")
+    parser.add_argument("--condition", type=str, default=None, help="unconditional or condition on text, class")
+    parser.add_argument("--num_classes", type=int, default=None, help="if condition on class")
+    parser.add_argument("--dataset", type=str, default='CIFAR10', help="MNIST, CIFAR10, CelebA, default: CIFAR10")
     parser.add_argument("--beta_schedule", type=str, default='cosine', help="beta schedule: cosine, linear, default: cosine")
     parser.add_argument("--loss_type", type=str, default='l1', help="loss type: l1, l2, huber, default: l1")
     parser.add_argument("--lr_decay", type=float, default=0.9, help="apply lr decay or not")
@@ -68,6 +69,7 @@ def main():
                  T.Lambda(lambda t: (t * 2) - 1),]
                 ),
             )
+
         
     model, diffusion = ddpm.create_model_and_diffusion(img_size=arg.img_size, 
                                                        in_channels=arg.channels,
@@ -76,6 +78,7 @@ def main():
                                                        timesteps=arg.timesteps, 
                                                        beta_schedule=arg.beta_schedule, 
                                                        loss_type=arg.loss_type,
+                                                       condition=arg.condition,
                                                        num_classes=arg.num_classes,
                                                        dropout=arg.dropout,
                                                        )
@@ -88,18 +91,18 @@ def main():
     
     dataloader = torch.utils.data.DataLoader(dataset, batch_size=arg.bs, shuffle=True)
 
-    trainer = ddpm.DiffusionTrainer(diffusion, 
-                                    timesteps=arg.timesteps, 
-                                    lr=arg.lr, 
-                                    weight_decay=arg.wd, 
-                                    dataloader=dataloader,
-                                    lr_decay=arg.lr_decay,
-                                    sample_interval=arg.sample_interval,
-                                    device=arg.device,
-                                    result_folder=res_path,
-                                    num_classes=arg.num_classes,
-                                    ema_decay=arg.ema_decay,
-                                    )
+    trainer = ddpm.Trainer(diffusion, 
+                           timesteps=arg.timesteps, 
+                           lr=arg.lr, 
+                           wd=arg.wd, 
+                           dataloader=dataloader,
+                           lr_decay=arg.lr_decay,
+                           device=arg.device,
+                           result_folder=res_path,
+                           condition=arg.condition,
+                           ema_decay=arg.ema_decay,
+                           sample_interval=arg.sample_interval,
+                           )
     trainer.train(arg.n_epochs)
 
 
