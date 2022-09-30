@@ -1,5 +1,6 @@
 import os
 import zipfile
+import numpy as np
 from PIL import Image
 from pycocotools.coco import COCO
 import torch
