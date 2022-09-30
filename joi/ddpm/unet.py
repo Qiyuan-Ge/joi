@@ -36,14 +36,11 @@ class TimeEmbedding(nn.Module):
 
 
 class TextEmbedding(nn.Module):
-    def __init__(self, out_dim, model_name='t5-base'):
+    def __init__(self, dim, model_name='t5-base'):
         super().__init__()
-        if model_name == 't5-small':
-            in_dim = 512
-        elif model_name == 't5-base':
-            in_dim = 768
+        d_model = {'t5-small':512, 't5-base':768}
         self.t5 = create_encoder(model_name)
-        self.proj = nn.Linear(in_dim, out_dim)
+        self.proj = nn.Linear(d_model[model_name], dim)
         
     def forward(self, token_ids):
         self.t5.eval()
