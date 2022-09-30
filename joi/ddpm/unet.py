@@ -36,10 +36,10 @@ class TimeEmbedding(nn.Module):
 
 
 class TextEmbedding(nn.Module):
-    def __init__(self, dim, model_name='t5-base'):
+    def __init__(self, dim, model_name='t5-base', pretrained=True):
         super().__init__()
         d_model = {'t5-small':512, 't5-base':768}
-        self.t5 = create_encoder(model_name)
+        self.t5 = create_encoder(model_name, pretrained)
         self.proj = nn.Linear(d_model[model_name], dim)
         
     def forward(self, token_ids):
@@ -237,6 +237,7 @@ class Unet(nn.Module):
         channel_mult=(1, 2, 4, 8),
         condition=None,
         text_model_name='t5-base',
+        text_model_pretrained=True,
         num_classes=None,
         num_heads=4,
         num_heads_upsample=-1,
@@ -270,7 +271,7 @@ class Unet(nn.Module):
             if condition == 'class':
                 self.cond_emb = nn.Embedding(num_classes, time_embed_dim)
             elif condition == 'text':
-                self.cond_emb = TextEmbedding(time_embed_dim, text_model_name)
+                self.cond_emb = TextEmbedding(time_embed_dim, text_model_name, text_model_pretrained)
 
         self.input_blocks = nn.ModuleList(
             [
