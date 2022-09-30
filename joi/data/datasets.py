@@ -1,10 +1,12 @@
 import os
 import zipfile
+import numpy as np
 from PIL import Image
+from pycocotools.coco import COCO
 import torch
 import torchvision.datasets as datasets
 
-__all__ = ['MNIST', 'CIFAR10', 'CelebA']
+__all__ = ['MNIST', 'CIFAR10', 'CelebA', 'Coco']
 
 def unzip_file(zip_src, tgt_dir):
     if zipfile.is_zipfile(zip_src):
@@ -21,7 +23,31 @@ def MNIST(root, download, transform):
 
 def CIFAR10(root, download, transform):
     return datasets.CIFAR10(root=root, train=True, download=download, transform=transform)
+
+
+class Coco:
+    def __init__(self, root, dataType='train2017', annType='captions', transform=None):
+        self.root = root
+        self.img_dir = '{}/{}'.format(root, dataType)
+        annFile = '{}/annotations/{}_{}.json'.format(root, annType, dataType)
+        self.coco = COCO(annFile)
+        self.imgids = self.coco.getImgIds()
+        self.transform = transform
     
+    def __getitem__(self, idx):
+        imgid = self.imgids[idx]
+        img_name = self.coco.loadImgs(imgid)[0]['file_name']
+        annid = self.coco.getAnnIds(imgIds=imgid)
+        img = Image.open(os.path.join(self.img_dir, img_name))
+        ann = np.random.choice(self.coco.loadAnns(annid))['caption']
+        if self.transform is not None:
+            img = self.transform(img)
+        
+        return img, ann     
+        
+    def __len__(self):
+        return len(self.imgids)
+
 
 class CelebA:
     def __init__(self, root, type='identity', transform=None):
