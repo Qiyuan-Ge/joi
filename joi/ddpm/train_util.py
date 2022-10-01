@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import torch
 from torchvision.utils import save_image
 from joi.utils import EMA, Log
@@ -65,7 +64,7 @@ class Trainer:
     
     def sample_and_save(self, img_size, channels, img_name):
         (n_row, n_col) = (10, 10) if img_size < 64 else (5, 5)
-        if exist(self.condition):
+        if exists(self.condition):
             n_row = min(n_row, self.curr_cond.shape[0])
             if self.condition == 'class':
                 conds = self.curr_cond[:n_row].repeat(n_col)
