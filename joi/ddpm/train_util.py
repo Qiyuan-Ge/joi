@@ -1,4 +1,5 @@
 import os
+import numpy as np
 import torch
 from torchvision.utils import save_image
 from joi.utils import EMA, Log
@@ -25,7 +26,9 @@ class Trainer:
                  lr_decay=0.9,
                  device=None, 
                  condition=None,
-                 ema_decay=0.95,
+                 num_classes=None,
+                 ema_decay=0.99,
+                 ema_interval=None,
                  result_folder=None,
                  sample_interval=None,  
                 ):
@@ -37,10 +40,14 @@ class Trainer:
         self.optimizer = torch.optim.AdamW(self.diffusion.model.parameters(), lr=lr, weight_decay=wd)
         self.dataloader = dataloader
         self.condition = condition
+        if self.condition not in [None, 'text', 'class']:
+            raise ValueError("condition must be None, text or class. ")
+        self.num_classes = num_classes
         self.image_folder = os.path.join(result_folder, 'image')
         self.model_folder = os.path.join(result_folder, 'model')
-        self.sample_interval = sample_interval
+        self.sample_interval = sample_interval or (len(dataloader) * 2)
         self.ema = EMA(self.diffusion.model, ema_decay)
+        self.ema_interval = ema_interval or (len(dataloader) // 2)
         self.diffusion.to(self.device)
         os.makedirs(self.image_folder, exist_ok=True)
         os.makedirs(self.model_folder, exist_ok=True)
@@ -58,23 +65,19 @@ class Trainer:
     
     def sample_and_save(self, img_size, channels, img_name):
         (n_row, n_col) = (10, 10) if img_size < 64 else (5, 5)
-        gen_images = self.diffusion.sample(img_size, n_row*n_col, channels)[-1]
+        if exist(self.condition):
+            n_row = min(n_row, self.curr_cond.shape[0])
+            if self.condition == 'class':
+                conds = self.curr_cond[:n_row].repeat(n_col)
+            elif self.condition == 'text':
+                conds = self.curr_cond[:n_row].repeat(n_col, 1, 1)
+            conds = conds.to(self.device)
+            gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, conds)[-1]       
+        else:
+            gen_images = self.diffusion.sample(img_size, n_row*n_col, channels)[-1]
         gen_images = reverse_transform(gen_images, clip=True)
         image_path = os.path.join(self.image_folder, f"sample-{img_name}.png")
         save_image(gen_images, image_path, nrow=n_row)
-        
-    def forward(self, batch):
-        imgs, cond = batch
-        batch_size, ch, img_size, img_size = imgs.shape
-        imgs = imgs.to(self.device)
-        t = torch.randint(0, self.timesteps, (batch_size,), device=self.device).long()
-        if exists(self.condition):
-            cond = cond.to(self.device)
-            loss = self.diffusion(imgs, t, y=cond)
-        else:
-            loss = self.diffusion(imgs, t)
-        
-        return loss, batch_size, ch, img_size
          
     def train(self, num_epochs):
         self.steps = 0
@@ -82,8 +85,17 @@ class Trainer:
         for epoch in range(num_epochs):
             log = Log()
             for step, batch in enumerate(self.dataloader):
+                imgs, cond = batch
+                batch_size, ch, img_size, img_size = imgs.shape
+                imgs = imgs.to(self.device)
+                t = torch.randint(0, self.timesteps, (batch_size,), device=self.device).long()
+                if exists(self.condition):
+                    cond = cond.to(self.device)
+                    loss = self.diffusion(imgs, t, y=cond)
+                else:
+                    loss = self.diffusion(imgs, t)
+                
                 self.optimizer.zero_grad()
-                loss, batch_size, ch, img_size = self.forward(batch)
                 loss.backward()
                 self.optimizer.step()
                 
@@ -95,14 +107,18 @@ class Trainer:
                     )
                 
                 self.steps += 1
+                
                 if self.lr_decay is not None:
                     self._lr_update()
-
+                
+                # save model
+                if self.steps != 0 and self.steps % self.ema_interval == 0:
+                    self._ema_update(self.diffusion.model)
+                    
                 # save generated images
                 if self.steps != 0 and self.steps % self.sample_interval == 0:
+                    self.curr_cond = cond.detach().cpu()
                     self.sample_and_save(img_size, channels=ch, img_name=self.steps)
-                    
-            self._ema_update(self.diffusion.model)
-                    
+                         
         print("Train finished!")
                     
