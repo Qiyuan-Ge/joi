@@ -1,8 +1,8 @@
 import os
 import torch
 from torchvision.utils import save_image
-from joi.ddpm import create_gaussian_diffusion
-from joi.ddpm.t5 import tokenize
+import joi.ddpm as ddpm
+from .t5 import tokenize
 
 
 class Painter:
@@ -10,7 +10,7 @@ class Painter:
         self.device = device
         self.img_size = img_size
         self.num_channel = num_channel
-        self.diffusion = create_gaussian_diffusion(model, timesteps, beta_schedule)
+        self.diffusion = ddpm.create_gaussian_diffusion(model, timesteps, beta_schedule)
         self.diffusion.to(device)
         self.task = task
         if task == 'text2image':
