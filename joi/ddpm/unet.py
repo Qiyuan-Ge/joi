@@ -255,6 +255,7 @@ class Unet(nn.Module):
         self.dropout = dropout
         self.channel_mult = channel_mult
         self.condition = condition
+        self.text_model_name = text_model_name
         self.num_classes = num_classes
         self.num_heads = num_heads
         self.num_heads_upsample = num_heads_upsample
