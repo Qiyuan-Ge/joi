@@ -11,13 +11,4 @@ setup(
         'diffusion models',
     ]      
     packages = find_packages(),
-    install_requires = [
-        'tqdm',
-        'numpy',
-        'einops',
-        'torch>=1.6',
-        'torchvision',
-        'transformers',
-        'sentencepiece',
-    ],
 )
