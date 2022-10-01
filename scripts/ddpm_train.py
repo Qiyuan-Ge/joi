@@ -2,9 +2,8 @@ import pathlib
 import argparse
 import torch
 import torchvision.transforms as T
-import joi
 import joi.ddpm as ddpm
-import joi.datasets as datasets
+from joi.data import datasets, Txt2ImgDataloader
 
 def main():
     parser = argparse.ArgumentParser()
@@ -29,6 +28,7 @@ def main():
     parser.add_argument("--device", type=str, default='cuda', help="cuda or cpu, default: cuda")
     parser.add_argument("--ema_decay", type=float, default=0.99, help="Exponential Moving Average, default: 0.99")
     parser.add_argument("--num_workers", type=int, default=0, help="how many subprocesses to use for data loading, default: 0")
+    parser.add_argument("--pin_memory", type=bool, default=False, help="default: False")
     arg = parser.parse_args()
     print(arg)
     
@@ -83,8 +83,8 @@ def main():
                  T.Lambda(lambda t: (t * 2) - 1),]
                 ),
             )
-        else:
-            raise ValueError('Please select from MNIST, CIFAR10, CelebA, coco2017')
+    else:
+        raise ValueError('Please select from MNIST, CIFAR10, CelebA, coco2017')
 
         
     model, diffusion = ddpm.create_model_and_diffusion(img_size=arg.img_size, 
@@ -106,9 +106,9 @@ def main():
     print(f"result folder path: {res_path}")
     
     if arg.condition == 'text':
-        dataloader = joi.dataloader.Txt2ImgDataloader(dataset, batch_size=arg.bs, shuffle=True, num_workers=arg.num_workers)
+        dataloader = Txt2ImgDataloader(dataset, batch_size=arg.bs, shuffle=True, num_workers=arg.num_workers, pin_memory=arg.pin_memory)
     else:
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=arg.bs, shuffle=True, num_workers=arg.num_workers)
+        dataloader = torch.utils.data.DataLoader(dataset, batch_size=arg.bs, shuffle=True, num_workers=arg.num_workers, pin_memory=arg.pin_memory)
 
     trainer = ddpm.Trainer(diffusion, 
                            timesteps=arg.timesteps, 
