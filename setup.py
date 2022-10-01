@@ -9,16 +9,16 @@ setup(
         'artificial intelligence',
         'deep learning',
         'diffusion models',
-    ]      
+    ],      
     packages = find_packages(),
     install_requires=[
-    'einops',
-    'numpy',
-    'pillow',
-    'sentencepiece',
-    'torch>=1.6',
-    'torchvision',
-    'transformers',
-    'tqdm'
-  ],
+        'einops',
+        'numpy',
+        'pillow',
+        'sentencepiece',
+        'torch>=1.6',
+        'torchvision',
+        'transformers',
+        'tqdm',
+    ],
 )
