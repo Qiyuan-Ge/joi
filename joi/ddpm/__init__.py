@@ -3,8 +3,7 @@ from .gaussian_diffusion import GaussianDiffusion
 from .train_util import Trainer
 
 __all__ = ['create_model', 'create_gaussian_diffusion', 'create_model_and_diffusion', 'DiffusionTrainer']
-text_model_name='t5-base',
-        text_model_pretrained=True,
+
 def create_model(img_size=64, in_channels=3, num_res_blocks=2, out_channels=None, condition=None, text_model_name='t5-base', text_model_pretrained=True, num_classes=None, dropout=0):
     if img_size == 32:
         return Unet(in_channels,
