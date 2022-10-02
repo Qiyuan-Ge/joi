@@ -35,7 +35,6 @@ class GaussianDiffusion(nn.Module):
     def __init__(self, model, timesteps=1000, beta_schedule='cosine', loss_type="l2"):
         super().__init__()
         self.model = model
-        self.device = next(model.parameters()).device
         self.timesteps = timesteps
         self.loss_type = loss_type
             
@@ -57,10 +56,6 @@ class GaussianDiffusion(nn.Module):
         
         # calculations for posterior q(x_{t-1}|x_t, x_0)
         self.posterior_variance = self.betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
-    
-    def to(self, device):
-        self.model.to(device)
-        self.device = next(self.model.parameters()).device
     
     # q(x_t|x_0)        
     def q_sample(self, x_start, t, noise=None): 
@@ -117,12 +112,13 @@ class GaussianDiffusion(nn.Module):
     @torch.no_grad()
     def p_sample_loop(self, shape, y):
         b = shape[0]
+        device = next(self.model.parameters()).device
         # start from pure noise
-        img = torch.randn(shape, device=self.device)
+        img = torch.randn(shape, device=device)
         imgs = []
         
         for i in tqdm(reversed(range(0, self.timesteps)), desc='sampling loop time step', total=self.timesteps):
-            img = self.p_sample(img, torch.full((b,), i, device=self.device, dtype=torch.long), i, y)
+            img = self.p_sample(img, torch.full((b,), i, device=device, dtype=torch.long), i, y)
             imgs.append(img.cpu())
             
         return imgs
