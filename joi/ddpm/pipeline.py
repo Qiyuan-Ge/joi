@@ -2,7 +2,7 @@ import os
 import torch
 from torchvision.utils import save_image
 import joi.ddpm as ddpm
-from .t5 import tokenize
+from .t5 import encode_text
 
 
 class Painter:
@@ -22,7 +22,7 @@ class Painter:
     def paint(self, condition, num_samples, saved_path):
         condition = [condition] * num_samples
         if self.task == 'text2image':
-            condition = tokenize(condition, name=self.text_model_name)
+            condition = encode_text(condition, name=self.text_model_name)
         elif self.task == 'class2image':
             condition = torch.tensor(condition).long()
         imgs = self.diffusion.sample(self.img_size, num_samples, self.num_channel, condition.to(self.device))[-1]
