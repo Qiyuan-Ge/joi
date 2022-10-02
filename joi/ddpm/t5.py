@@ -37,3 +37,18 @@ def tokenize(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, return_attn_mask=F
         return input_ids
 
 
+def encode_text(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, pad=PAD_id):
+    token_ids = tokenize(texts, name, max_len)
+    attn_mask = create_mask(token_ids, pad)
+    t5 = create_encoder(name=name)
+    if torch.cuda.is_available():
+        t5 = t5.cuda()
+        token_ids = token_ids.cuda()
+        attn_mask = attn_mask.cuda()
+    t5.eval()
+    with torch.no_grad():
+        output = t5(input_ids=token_ids, attention_mask=attn_mask)
+        encoded_text = output.last_hidden_state.detach()
+        encoded_text = encoded_text[token_ids==1] # EOS_id = 1
+        
+    return encoded_text
