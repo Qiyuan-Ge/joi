@@ -46,8 +46,8 @@ class Trainer:
         self.num_classes = num_classes
         self.image_dir = os.path.join(result_folder, 'image')
         self.model_dir = os.path.join(result_folder, 'model')
-        self.ema_interval = ema_interval or (len(dataloader) // 2)
-        self.sample_interval = sample_interval or (len(dataloader) * 2)
+        self.ema_interval = ema_interval or (len(self.dataloader) // 2)
+        self.sample_interval = sample_interval or len(self.dataloader)
         os.makedirs(self.image_dir, exist_ok=True)
         os.makedirs(self.model_dir, exist_ok=True)
         
