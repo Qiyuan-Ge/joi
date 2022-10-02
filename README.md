@@ -50,6 +50,11 @@ python ddpm_train.py --n_epochs=800 --bs=64 --lr=1e-4 --timesteps=1000 --wd=1e-4
 
 ## Text-to-Image Generation
 
+## Multi GPU Training
+````
+accelerate launch ddpm_train.py
+````
+
 ## Reference
 ````
 - Lil’Log
