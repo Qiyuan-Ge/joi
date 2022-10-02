@@ -24,7 +24,6 @@ class Trainer:
                  wd, 
                  dataloader,
                  lr_decay=0.9,
-                 device=None, 
                  condition=None,
                  num_classes=None,
                  ema_decay=0.99,
