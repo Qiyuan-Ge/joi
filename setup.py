@@ -20,7 +20,6 @@ setup(
         'torchvision',
         'transformers',
         'accelerate',
-        'deepspeed',
         'tqdm',
     ],
 )
