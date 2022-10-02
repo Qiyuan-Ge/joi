@@ -56,11 +56,11 @@ class Trainer:
         for param_group in self.optimizer.param_groups:
             param_group["lr"] = lr
             
-    def _ema_update(self, model):
+    def _ema_update(self, diffusion):
         print("saving model state ...")
         self.accelerator.wait_for_everyone()
-        unwrapped_model = self.accelerator.unwrap_model(model)
-        self.ema.update(unwrapped_model)
+        unwrapped_diffusion = self.accelerator.unwrap_model(diffusion)
+        self.ema.update(unwrapped_diffusion.model)
         model_path = os.path.join(self.model_dir, "model_ema.pt")
         self.accelerator.save(self.ema.model.state_dict(), model_path)
     
@@ -72,9 +72,9 @@ class Trainer:
                 conds = self.curr_cond[:n_row].repeat(n_col)
             elif self.condition == 'text':
                 conds = self.curr_cond[:n_row].repeat(n_col, 1)
-            gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, conds)[-1]       
+            gen_images = self.accelerator.unwrap_model(self.diffusion)(img_size, n_row*n_col, channels, conds)[-1]       
         else:
-            gen_images = self.diffusion.sample(img_size, n_row*n_col, channels)[-1]
+            gen_images = self.accelerator.unwrap_model(self.diffusion)(img_size, n_row*n_col, channels)[-1]
         gen_images = reverse_transform(gen_images, clip=True)
         image_path = os.path.join(self.image_dir, f"sample-{img_name}.png")
         save_image(gen_images, image_path, nrow=n_row)
@@ -111,7 +111,7 @@ class Trainer:
                 
                 # save model
                 if self.steps != 0 and self.steps % self.ema_interval == 0:
-                    self._ema_update(self.diffusion.model)
+                    self._ema_update(self.diffusion)
                     
                 # save generated images
                 if self.steps != 0 and self.steps % self.sample_interval == 0:
