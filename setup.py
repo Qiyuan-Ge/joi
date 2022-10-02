@@ -21,5 +21,6 @@ setup(
         'transformers',
         'accelerate',
         'tqdm',
+        'pycocotools',
     ],
 )
