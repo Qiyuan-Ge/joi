@@ -13,7 +13,7 @@ class EMA:
         self.model = deepcopy(model)
         self.decay = decay
         self.device = device
-        self.model_ema.to(device)
+        self.model.to(device)
         
     @torch.no_grad()
     def update(self, model2):
