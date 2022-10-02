@@ -10,14 +10,14 @@ class EMA:
         device:
     """    
     def __init__(self, model, decay=0.99, device='cpu'):
-        self.model_ema = deepcopy(model)
+        self.model = deepcopy(model)
         self.decay = decay
         self.device = device
         self.model_ema.to(device)
         
     @torch.no_grad()
-    def update(self, model):
-        for p_ema, p_model in zip(self.model_ema.state_dict().values(), model.state_dict().values()):
+    def update(self, model2):
+        for p_ema, p_model in zip(self.model.state_dict().values(), model2.state_dict().values()):
             p_model = p_model.to(self.device)
             p_ema.copy_(self.func(p_ema, p_model))
             
