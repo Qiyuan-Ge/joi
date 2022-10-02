@@ -67,3 +67,13 @@ python ddpm_train.py --n_epochs=800 --bs=64 --lr=1e-4 --timesteps=1000 --wd=1e-4
 - Hierarchical Text-Conditional Image Generation with CLIP Latents
 ````
 
+## Citing
+````
+@Misc{accelerate,
+  title =        {Accelerate: Training and inference at scale made simple, efficient and adaptable.},
+  author =       {Sylvain Gugger, Lysandre Debut, Thomas Wolf, Philipp Schmid, Zachary Mueller, Sourab Mangrulkar},
+  howpublished = {\url{https://github.com/huggingface/accelerate}},
+  year =         {2022}
+}
+````
+
