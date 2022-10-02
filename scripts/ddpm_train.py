@@ -18,6 +18,7 @@ def main():
     parser.add_argument("--num_res_blocks", type=int, default=2, help="number of residual blocks")
     parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
     parser.add_argument("--condition", type=str, default=None, help="unconditional or condition on text, class")
+    parser.add_argument("--text_model_name", type=str, default='t5-small', help="t5-small, t5-base, default: t5-small")
     parser.add_argument("--num_classes", type=int, default=None, help="if condition on class")
     parser.add_argument("--dataset", type=str, default='CIFAR10', help="MNIST, CIFAR10, CelebA, COCO2017, default: CIFAR10")
     parser.add_argument("--beta_schedule", type=str, default='cosine', help="beta schedule: cosine, linear, default: cosine")
@@ -25,7 +26,6 @@ def main():
     parser.add_argument("--lr_decay", type=float, default=0.9, help="apply lr decay or not")
     parser.add_argument("--sample_interval", type=int, default=1000, help="interval between image sampling")
     parser.add_argument("--data_path", type=str, default='none', help="set your own data path")
-    #parser.add_argument("--device", type=str, default='cuda', help="cuda or cpu, default: cuda")
     parser.add_argument("--ema_decay", type=float, default=0.99, help="Exponential Moving Average, default: 0.99")
     parser.add_argument("--num_workers", type=int, default=0, help="how many subprocesses to use for data loading, default: 0")
     parser.add_argument("--pin_memory", type=bool, default=False, help="default: False")
@@ -106,9 +106,20 @@ def main():
     print(f"result folder path: {res_path}")
     
     if arg.condition == 'text':
-        dataloader = Txt2ImgDataloader(dataset, batch_size=arg.bs, shuffle=True, num_workers=arg.num_workers, pin_memory=arg.pin_memory)
+        dataloader = Txt2ImgDataloader(dataset, 
+                                       batch_size=arg.bs, 
+                                       shuffle=True,
+                                       text_model_name=arg.text_model_name,
+                                       num_workers=arg.num_workers, 
+                                       pin_memory=arg.pin_memory,
+                                      )
     else:
-        dataloader = torch.utils.data.DataLoader(dataset, batch_size=arg.bs, shuffle=True, num_workers=arg.num_workers, pin_memory=arg.pin_memory)
+        dataloader = torch.utils.data.DataLoader(dataset, 
+                                                 batch_size=arg.bs, 
+                                                 shuffle=True, 
+                                                 num_workers=arg.num_workers, 
+                                                 pin_memory=arg.pin_memory,
+                                                )
 
     trainer = ddpm.Trainer(diffusion, 
                            timesteps=arg.timesteps, 
