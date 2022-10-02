@@ -1,6 +1,7 @@
 import os
 import torch
 from torchvision.utils import save_image
+from accelerate import Accelerator
 from joi.utils import EMA, Log
 
 
@@ -31,25 +32,25 @@ class Trainer:
                  result_folder=None,
                  sample_interval=None,  
                 ):
+        self.accelerator = Accelerator()
+        self.device = self.accelerator.device.type
         self.lr = lr
         self.lr_decay = lr_decay
-        self.device = device
-        self.diffusion = diffusion
         self.timesteps = timesteps
-        self.optimizer = torch.optim.AdamW(self.diffusion.model.parameters(), lr=lr, weight_decay=wd)
-        self.dataloader = dataloader
+        self.diffusion = diffusion
+        self.ema = EMA(self.diffusion.model, ema_decay)
+        self.optimizer = torch.optim.AdamW(self.diffusion.parameters(), lr=lr, weight_decay=wd)
+        self.diffusion, self.optimizer, self.dataloader = self.accelerator.prepare(self.diffusion, self.optimizer, dataloader)
         self.condition = condition
         if self.condition not in [None, 'text', 'class']:
             raise ValueError("condition must be None, text or class. ")
         self.num_classes = num_classes
-        self.image_folder = os.path.join(result_folder, 'image')
-        self.model_folder = os.path.join(result_folder, 'model')
-        self.sample_interval = sample_interval or (len(dataloader) * 2)
-        self.ema = EMA(self.diffusion.model, ema_decay)
+        self.image_dir = os.path.join(result_folder, 'image')
+        self.model_dir = os.path.join(result_folder, 'model')
         self.ema_interval = ema_interval or (len(dataloader) // 2)
-        self.diffusion.to(self.device)
-        os.makedirs(self.image_folder, exist_ok=True)
-        os.makedirs(self.model_folder, exist_ok=True)
+        self.sample_interval = sample_interval or (len(dataloader) * 2)
+        os.makedirs(self.image_dir, exist_ok=True)
+        os.makedirs(self.model_dir, exist_ok=True)
         
     def _lr_update(self):
         lr = self.lr * (1 - self.lr_decay * self.steps / self.total_steps)
@@ -58,9 +59,11 @@ class Trainer:
             
     def _ema_update(self, model):
         print("saving model state ...")
-        self.ema.update(model)
+        self.accelerator.wait_for_everyone()
+        unwrapped_model = self.accelerator.unwrap_model(model)
+        self.ema.update(unwrapped_model)
         model_path = os.path.join(self.model_folder, "model_ema.pt")
-        torch.save(self.ema.model_ema.state_dict(), model_path)
+        accelerator.save(self.ema.model_ema.state_dict(), model_path)
     
     def sample_and_save(self, img_size, channels, img_name):
         (n_row, n_col) = (10, 10) if img_size < 64 else (5, 5)
@@ -74,7 +77,7 @@ class Trainer:
         else:
             gen_images = self.diffusion.sample(img_size, n_row*n_col, channels)[-1]
         gen_images = reverse_transform(gen_images, clip=True)
-        image_path = os.path.join(self.image_folder, f"sample-{img_name}.png")
+        image_path = os.path.join(self.image_dir, f"sample-{img_name}.png")
         save_image(gen_images, image_path, nrow=n_row)
          
     def train(self, num_epochs):
@@ -83,19 +86,19 @@ class Trainer:
         for epoch in range(num_epochs):
             log = Log()
             for step, batch in enumerate(self.dataloader):
+                self.optimizer.zero_grad()
+                
                 imgs, cond = batch
                 bs, ch, img_size, img_size = imgs.shape
-                imgs = imgs.to(self.device)
                 t = torch.randint(0, self.timesteps, (bs,), device=self.device).long()
                 if exists(self.condition):
-                    cond = cond.to(self.device)
                     loss = self.diffusion(imgs, t, y=cond)
                 else:
                     loss = self.diffusion(imgs, t)
                 
-                self.optimizer.zero_grad()
-                loss.backward()
+                self.accelerator.backward(loss)
                 self.optimizer.step()
+                self.steps += 1
                 
                 log.add({'total_loss':float(loss)*bs, 'n_sample':bs})
                 log.update({'loss':float(loss), 'lr':self.optimizer.param_groups[0]['lr']})
@@ -103,8 +106,6 @@ class Trainer:
                     "[Epoch %d|%d] [Batch %d|%d] [Loss %f|%f] [Lr %f]"
                     % (epoch, num_epochs, step, len(self.dataloader), log['loss'], log['total_loss']/log['n_sample'], log['lr'])
                     )
-                
-                self.steps += 1
                 
                 if self.lr_decay is not None:
                     self._lr_update()
