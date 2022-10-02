@@ -33,7 +33,7 @@ def main():
     print(arg)
     
     if arg.data_path == 'none':
-        root = f"./dataset/{arg.dataset}"
+        root = pathlib.Path.cwd() / "dataset" / arg.dataset
         data_path = pathlib.Path(root)
         data_path.mkdir(exist_ok=True, parents=True)
     else:
