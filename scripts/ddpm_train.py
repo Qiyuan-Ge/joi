@@ -19,13 +19,13 @@ def main():
     parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
     parser.add_argument("--condition", type=str, default=None, help="unconditional or condition on text, class")
     parser.add_argument("--num_classes", type=int, default=None, help="if condition on class")
-    parser.add_argument("--dataset", type=str, default='CIFAR10', help="MNIST, CIFAR10, CelebA, default: CIFAR10")
+    parser.add_argument("--dataset", type=str, default='CIFAR10', help="MNIST, CIFAR10, CelebA, COCO2017, default: CIFAR10")
     parser.add_argument("--beta_schedule", type=str, default='cosine', help="beta schedule: cosine, linear, default: cosine")
     parser.add_argument("--loss_type", type=str, default='l1', help="loss type: l1, l2, huber, default: l1")
     parser.add_argument("--lr_decay", type=float, default=0.9, help="apply lr decay or not")
     parser.add_argument("--sample_interval", type=int, default=1000, help="interval between image sampling")
     parser.add_argument("--data_path", type=str, default='none', help="set your own data path")
-    parser.add_argument("--device", type=str, default='cuda', help="cuda or cpu, default: cuda")
+    #parser.add_argument("--device", type=str, default='cuda', help="cuda or cpu, default: cuda")
     parser.add_argument("--ema_decay", type=float, default=0.99, help="Exponential Moving Average, default: 0.99")
     parser.add_argument("--num_workers", type=int, default=0, help="how many subprocesses to use for data loading, default: 0")
     parser.add_argument("--pin_memory", type=bool, default=False, help="default: False")
@@ -71,7 +71,7 @@ def main():
                  T.Lambda(lambda t: (t * 2) - 1),]
                 ),
             )
-    elif arg.dataset == 'coco2017':
+    elif arg.dataset == 'COCO2017':
         dataset = datasets.Coco(
             root=root,
             dataType='train2017', 
@@ -116,7 +116,6 @@ def main():
                            wd=arg.wd, 
                            dataloader=dataloader,
                            lr_decay=arg.lr_decay,
-                           device=arg.device,
                            result_folder=res_path,
                            condition=arg.condition,
                            ema_decay=arg.ema_decay,
