@@ -38,7 +38,7 @@ class Coco:
         imgid = self.imgids[idx]
         img_name = self.coco.loadImgs(imgid)[0]['file_name']
         annid = self.coco.getAnnIds(imgIds=imgid)
-        img = Image.open(os.path.join(self.img_dir, img_name))
+        img = Image.open(os.path.join(self.img_dir, img_name)).convert('RGB')
         ann = np.random.choice(self.coco.loadAnns(annid))['caption']
         if self.transform is not None:
             img = self.transform(img)
