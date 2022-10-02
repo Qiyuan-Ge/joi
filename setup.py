@@ -19,6 +19,7 @@ setup(
         'torch>=1.6',
         'torchvision',
         'transformers',
+        'accelerate',
         'tqdm',
     ],
 )
