@@ -63,7 +63,7 @@ class Trainer:
         unwrapped_model = self.accelerator.unwrap_model(model)
         self.ema.update(unwrapped_model)
         model_path = os.path.join(self.model_folder, "model_ema.pt")
-        accelerator.save(self.ema.model_ema.state_dict(), model_path)
+        self.accelerator.save(self.ema.model.state_dict(), model_path)
     
     def sample_and_save(self, img_size, channels, img_name):
         (n_row, n_col) = (10, 10) if img_size < 64 else (5, 5)
