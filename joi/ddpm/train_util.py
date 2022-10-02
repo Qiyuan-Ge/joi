@@ -69,8 +69,7 @@ class Trainer:
             if self.condition == 'class':
                 conds = self.curr_cond[:n_row].repeat(n_col)
             elif self.condition == 'text':
-                conds = self.curr_cond[:n_row].repeat(n_col, 1, 1)
-            conds = conds.to(self.device)
+                conds = self.curr_cond[:n_row].repeat(n_col, 1)
             gen_images = self.diffusion.sample(img_size, n_row*n_col, channels, conds)[-1]       
         else:
             gen_images = self.diffusion.sample(img_size, n_row*n_col, channels)[-1]
@@ -85,9 +84,9 @@ class Trainer:
             log = Log()
             for step, batch in enumerate(self.dataloader):
                 imgs, cond = batch
-                batch_size, ch, img_size, img_size = imgs.shape
+                bs, ch, img_size, img_size = imgs.shape
                 imgs = imgs.to(self.device)
-                t = torch.randint(0, self.timesteps, (batch_size,), device=self.device).long()
+                t = torch.randint(0, self.timesteps, (bs,), device=self.device).long()
                 if exists(self.condition):
                     cond = cond.to(self.device)
                     loss = self.diffusion(imgs, t, y=cond)
@@ -98,7 +97,7 @@ class Trainer:
                 loss.backward()
                 self.optimizer.step()
                 
-                log.add({'total_loss':float(loss)*batch_size, 'n_sample':batch_size})
+                log.add({'total_loss':float(loss)*bs, 'n_sample':bs})
                 log.update({'loss':float(loss), 'lr':self.optimizer.param_groups[0]['lr']})
                 print(
                     "[Epoch %d|%d] [Batch %d|%d] [Loss %f|%f] [Lr %f]"
@@ -116,7 +115,7 @@ class Trainer:
                     
                 # save generated images
                 if self.steps != 0 and self.steps % self.sample_interval == 0:
-                    self.curr_cond = cond.detach().cpu()
+                    self.curr_cond = cond
                     self.sample_and_save(img_size, channels=ch, img_name=self.steps)
                          
         print("Train finished!")
