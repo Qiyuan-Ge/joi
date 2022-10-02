@@ -33,23 +33,6 @@ class TimeEmbedding(nn.Module):
         embeddings = torch.cat([embeddings.sin(), embeddings.cos()], dim=-1)
             
         return embeddings
-
-
-class TextEmbedding(nn.Module):
-    def __init__(self, dim, model_name='t5-base', pretrained=True):
-        super().__init__()
-        d_model = {'t5-small':512, 't5-base':768}
-        self.t5 = create_encoder(model_name, pretrained)
-        self.proj = nn.Linear(d_model[model_name], dim)
-        
-    def forward(self, token_ids):
-        self.t5.eval()
-        with torch.no_grad():
-            output = self.t5(input_ids=token_ids, attention_mask=create_mask(token_ids))
-            encoded_text = output.last_hidden_state.detach()
-            encoded_text = encoded_text[token_ids==1] # EOS_id = 1
-        
-        return self.proj(encoded_text)
         
 
 class TimestepBlock(nn.Module):
@@ -237,7 +220,6 @@ class Unet(nn.Module):
         channel_mult=(1, 2, 4, 8),
         condition=None,
         text_model_name='t5-base',
-        text_model_pretrained=True,
         num_classes=None,
         num_heads=4,
         num_heads_upsample=-1,
@@ -254,7 +236,10 @@ class Unet(nn.Module):
         self.attention_resolutions = attention_resolutions
         self.dropout = dropout
         self.channel_mult = channel_mult
-        self.condition = condition
+        if condition in [None, 'class', 'text']:
+            self.condition = condition
+        else:
+            raise ValueError('condition must be None, class or text')
         self.text_model_name = text_model_name
         self.num_classes = num_classes
         self.num_heads = num_heads
@@ -272,7 +257,8 @@ class Unet(nn.Module):
             if condition == 'class':
                 self.cond_emb = nn.Embedding(num_classes, time_embed_dim)
             elif condition == 'text':
-                self.cond_emb = TextEmbedding(time_embed_dim, text_model_name, text_model_pretrained)
+                d_model = {'t5-small':512, 't5-base':768}
+                self.cond_emb = nn.Linear(d_model[text_model_name], time_embed_dim)
 
         self.input_blocks = nn.ModuleList(
             [
