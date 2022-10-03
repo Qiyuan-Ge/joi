@@ -1,5 +1,5 @@
 
-## Denoising Diffusion Probability Model
+# Denoising Diffusion Probability Model
 
 <div align=center>
 <img src="https://user-images.githubusercontent.com/53368178/190867851-6d84fb48-ead7-47f1-90d4-4b71c7622396.png">
@@ -52,7 +52,18 @@ python ddpm_train.py --n_epochs=800 --bs=64 --lr=1e-4 --timesteps=1000 --wd=1e-4
 
 ## Multi GPU Training
 ````
+accelerate config
+accelerate launch ddpm_train.py
+````
+or
+````
 accelerate launch --multi_gpu ddpm_train.py
+````
+
+## Log
+````
+2022/10/4 
+add gradient clip
 ````
 
 ## Reference
