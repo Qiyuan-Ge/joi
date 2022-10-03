@@ -57,7 +57,6 @@ class Trainer:
             param_group["lr"] = lr
             
     def _ema_update(self, diffusion):
-        print("saving model state ...")
         self.accelerator.wait_for_everyone()
         unwrapped_diffusion = self.accelerator.unwrap_model(diffusion)
         self.ema.update(unwrapped_diffusion.model)
