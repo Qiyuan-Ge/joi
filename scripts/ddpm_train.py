@@ -23,7 +23,7 @@ def main():
     parser.add_argument("--beta_schedule", type=str, default='cosine', help="beta schedule: cosine, linear, default: cosine")
     parser.add_argument("--loss_type", type=str, default='l1', help="loss type: l1, l2, huber, default: l1")
     parser.add_argument("--lr_decay", type=float, default=0.9, help="apply lr decay or not")
-     parser.add_argument("--max_grad_norm", type=float, default=1.0, help="clips gradient norm of an iterable of parameters.")
+    parser.add_argument("--max_grad_norm", type=float, default=1.0, help="clips gradient norm of an iterable of parameters.")
     parser.add_argument("--sample_interval", type=int, default=1000, help="interval between image sampling")
     parser.add_argument("--data_path", type=str, default='none', help="set your own data path")
     parser.add_argument("--ema_decay", type=float, default=0.99, help="Exponential Moving Average, default: 0.99")
