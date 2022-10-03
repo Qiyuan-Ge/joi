@@ -25,7 +25,6 @@ class Trainer:
                  dataloader,
                  lr_decay=0.9,
                  condition=None,
-                 num_classes=None,
                  ema_decay=0.9999,
                  max_grad_norm=1.0,
                  result_folder=None,
@@ -46,7 +45,6 @@ class Trainer:
         self.condition = condition
         if self.condition not in [None, 'text', 'class']:
             raise ValueError("condition must be None, text or class. ")
-        self.num_classes = num_classes
         self.image_dir = os.path.join(result_folder, 'image')
         self.model_dir = os.path.join(result_folder, 'model')
         self.sample_interval = sample_interval or len(self.dataloader)
