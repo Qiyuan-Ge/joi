@@ -19,11 +19,11 @@ def main():
     parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
     parser.add_argument("--condition", type=str, default=None, help="unconditional or condition on text, class")
     parser.add_argument("--text_model_name", type=str, default='t5-small', help="t5-small, t5-base, default: t5-small")
-    parser.add_argument("--num_classes", type=int, default=None, help="if condition on class")
     parser.add_argument("--dataset", type=str, default='CIFAR10', help="MNIST, CIFAR10, CelebA, COCO2017, default: CIFAR10")
     parser.add_argument("--beta_schedule", type=str, default='cosine', help="beta schedule: cosine, linear, default: cosine")
     parser.add_argument("--loss_type", type=str, default='l1', help="loss type: l1, l2, huber, default: l1")
     parser.add_argument("--lr_decay", type=float, default=0.9, help="apply lr decay or not")
+     parser.add_argument("--max_grad_norm", type=float, default=1.0, help="clips gradient norm of an iterable of parameters.")
     parser.add_argument("--sample_interval", type=int, default=1000, help="interval between image sampling")
     parser.add_argument("--data_path", type=str, default='none', help="set your own data path")
     parser.add_argument("--ema_decay", type=float, default=0.99, help="Exponential Moving Average, default: 0.99")
@@ -128,9 +128,10 @@ def main():
                            wd=arg.wd, 
                            dataloader=dataloader,
                            lr_decay=arg.lr_decay,
-                           result_folder=res_path,
                            condition=arg.condition,
                            ema_decay=arg.ema_decay,
+                           max_grad_norm=arg.max_grad_norm,
+                           result_folder=res_path,
                            sample_interval=arg.sample_interval,
                            )
     trainer.train(arg.n_epochs)
