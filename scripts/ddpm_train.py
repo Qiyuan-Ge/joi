@@ -95,6 +95,7 @@ def main():
                                                        beta_schedule=arg.beta_schedule, 
                                                        loss_type=arg.loss_type,
                                                        condition=arg.condition,
+                                                       text_model_name=arg.text_model_name,
                                                        num_classes=arg.num_classes,
                                                        dropout=arg.dropout,
                                                        )
