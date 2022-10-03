@@ -26,8 +26,8 @@ class Trainer:
                  lr_decay=0.9,
                  condition=None,
                  num_classes=None,
-                 ema_decay=0.99,
-                 ema_interval=None,
+                 ema_decay=0.9999,
+                 max_grad_norm=1.0,
                  result_folder=None,
                  sample_interval=None,  
                 ):
@@ -37,7 +37,10 @@ class Trainer:
         self.lr_decay = lr_decay
         self.timesteps = timesteps
         self.diffusion = diffusion
-        self.ema = EMA(self.diffusion.model, ema_decay)
+        self.ema_decay = ema_decay
+        if exists(self.ema_decay):
+            self.ema = EMA(self.diffusion.model, ema_decay)
+        self.max_grad_norm = max_grad_norm
         self.optimizer = torch.optim.AdamW(self.diffusion.parameters(), lr=lr, weight_decay=wd)
         self.diffusion, self.optimizer, self.dataloader = self.accelerator.prepare(self.diffusion, self.optimizer, dataloader)
         self.condition = condition
@@ -46,7 +49,6 @@ class Trainer:
         self.num_classes = num_classes
         self.image_dir = os.path.join(result_folder, 'image')
         self.model_dir = os.path.join(result_folder, 'model')
-        self.ema_interval = ema_interval or (len(self.dataloader) // 2)
         self.sample_interval = sample_interval or len(self.dataloader)
         os.makedirs(self.image_dir, exist_ok=True)
         os.makedirs(self.model_dir, exist_ok=True)
@@ -97,24 +99,23 @@ class Trainer:
                     loss = self.diffusion(imgs, t)
                 
                 self.accelerator.backward(loss)
+                if exists(self.max_grad_norm):  
+                    self.accelerator.clip_grad_norm_(self.diffusion.parameters(), self.max_grad_norm)
                 self.optimizer.step()
-                self.steps += 1
                 
-                log.add({'total_loss':float(loss)*bs, 'n_sample':bs})
+                if exists(self.ema_decay):
+                    self._ema_update(self.diffusion)
+                
+                log.add({'total_loss':float(loss) * bs, 'n_sample':bs})
                 log.update({'loss':float(loss), 'lr':self.optimizer.param_groups[0]['lr']})
                 print(
                     "[Epoch %d|%d] [Batch %d|%d] [Loss %f|%f] [Lr %f]"
                     % (epoch, num_epochs, step, len(self.dataloader), log['loss'], log['total_loss']/log['n_sample'], log['lr'])
                     )
                 
+                self.steps += 1
                 if exists(self.lr_decay):
                     self._lr_update()
-                
-                # save model
-                if self.steps != 0 and self.steps % self.ema_interval == 0:
-                    self._ema_update(self.diffusion)
-                    
-                # save generated images
                 if self.steps != 0 and self.steps % self.sample_interval == 0:
                     self.curr_cond = cond
                     self.sample_and_save(img_size, channels=ch, img_name=self.steps)
