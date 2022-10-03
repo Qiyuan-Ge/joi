@@ -66,15 +66,16 @@ class Trainer:
     
     def sample_and_save(self, img_size, channels, img_name):
         (n_row, n_col) = (10, 10) if img_size < 64 else (5, 5)
+        unwrap_diffusion = self.accelerator.unwrap_model(self.diffusion)
         if exists(self.condition):
             n_row = min(n_row, self.curr_cond.shape[0])
             if self.condition == 'class':
                 conds = self.curr_cond[:n_row].repeat(n_col)
             elif self.condition == 'text':
                 conds = self.curr_cond[:n_row].repeat(n_col, 1)
-            gen_images = self.accelerator.unwrap_model(self.diffusion)(img_size, n_row*n_col, channels, conds)[-1]       
+            gen_images = unwrap_diffusion.sample(img_size, n_row*n_col, channels, conds)[-1]       
         else:
-            gen_images = self.accelerator.unwrap_model(self.diffusion)(img_size, n_row*n_col, channels)[-1]
+            gen_images = unwrap_diffusion.sample(img_size, n_row*n_col, channels)[-1]
         gen_images = reverse_transform(gen_images, clip=True)
         image_path = os.path.join(self.image_dir, f"sample-{img_name}.png")
         save_image(gen_images, image_path, nrow=n_row)
@@ -106,7 +107,7 @@ class Trainer:
                     % (epoch, num_epochs, step, len(self.dataloader), log['loss'], log['total_loss']/log['n_sample'], log['lr'])
                     )
                 
-                if self.lr_decay is not None:
+                if exists(self.lr_decay):
                     self._lr_update()
                 
                 # save model
