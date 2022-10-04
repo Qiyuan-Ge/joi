@@ -19,6 +19,7 @@ def main():
     parser.add_argument("--out_channels", type=int, default=None, help="number of output channels")
     parser.add_argument("--condition", type=str, default=None, help="unconditional or condition on text, class")
     parser.add_argument("--text_model_name", type=str, default='t5-small', help="t5-small, t5-base, default: t5-small")
+    parser.add_argument("--num_classes", type=int, default=None, help="need to be specified when condition on class")
     parser.add_argument("--dataset", type=str, default='CIFAR10', help="MNIST, CIFAR10, CelebA, COCO2017, default: CIFAR10")
     parser.add_argument("--beta_schedule", type=str, default='cosine', help="beta schedule: cosine, linear, default: cosine")
     parser.add_argument("--loss_type", type=str, default='l1', help="loss type: l1, l2, huber, default: l1")
