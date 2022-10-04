@@ -1,7 +1,8 @@
 import os
 import torch
-from torchvision.utils import save_image
+from tqdm.auto import tqdm
 from accelerate import Accelerator
+from torchvision.utils import save_image
 from joi.utils import EMA, Log
 
 
@@ -84,38 +85,43 @@ class Trainer:
         self.total_steps = len(self.dataloader) * num_epochs
         for epoch in range(num_epochs):
             log = Log()
-            for step, batch in enumerate(self.dataloader):
-                self.optimizer.zero_grad()
-                
-                imgs, cond = batch
-                bs, ch, img_size, img_size = imgs.shape
-                t = torch.randint(0, self.timesteps, (bs,), device=self.device).long()
-                if exists(self.condition):
-                    loss = self.diffusion(imgs, t, y=cond)
-                else:
-                    loss = self.diffusion(imgs, t)
-                
-                self.accelerator.backward(loss)
-                if exists(self.max_grad_norm):  
-                    self.accelerator.clip_grad_norm_(self.diffusion.parameters(), self.max_grad_norm)
-                self.optimizer.step()
-                
-                if exists(self.ema_decay):
-                    self._ema_update(self.diffusion)
-                
-                log.add({'total_loss':float(loss) * bs, 'n_sample':bs})
-                log.update({'loss':float(loss), 'lr':self.optimizer.param_groups[0]['lr']})
-                print(
-                    "[Epoch %d|%d] [Batch %d|%d] [Loss %f|%f] [Lr %f]"
-                    % (epoch, num_epochs, step, len(self.dataloader), log['loss'], log['total_loss']/log['n_sample'], log['lr'])
-                    )
-                
-                self.steps += 1
-                if exists(self.lr_decay):
-                    self._lr_update()
-                if self.steps != 0 and self.steps % self.sample_interval == 0:
-                    self.curr_cond = cond
-                    self.sample_and_save(img_size, channels=ch, img_name=self.steps)
+            with tqdm(self.dataloader, dynamic_ncols=True) as tqdm_dataloader:
+                for batch in tqdm_dataloader:
+                    self.optimizer.zero_grad()
+                    
+                    imgs, cond = batch
+                    bs, ch, img_size, img_size = imgs.shape
+                    t = torch.randint(0, self.timesteps, (bs,), device=self.device).long()
+                    if exists(self.condition):
+                        loss = self.diffusion(imgs, t, y=cond)
+                    else:
+                        loss = self.diffusion(imgs, t)
+                    
+                    self.accelerator.backward(loss)
+                    if exists(self.max_grad_norm):  
+                        self.accelerator.clip_grad_norm_(self.diffusion.parameters(), self.max_grad_norm)
+                    self.optimizer.step()
+                    
+                    if exists(self.ema_decay):
+                        self._ema_update(self.diffusion)
+                    
+                    log.add({'total_loss':loss.item() * bs, 'n_sample':bs})
+                    log.update({'loss':loss.item(), 'lr':self.optimizer.param_groups[0]['lr']})
+                    tqdm_dataloader.set_postfix(
+                        ordered_dict={
+                            "Epoch"      : epoch,
+                            "Loss"       : log['loss'],
+                            "Mean Loss"  : log['total_loss']/log['n_sample'],
+                            "LR"         : log['lr'],
+                            }
+                        )
+
+                    self.steps += 1
+                    if exists(self.lr_decay):
+                        self._lr_update()
+                    if self.steps != 0 and self.steps % self.sample_interval == 0:
+                        self.curr_cond = cond
+                        self.sample_and_save(img_size, channels=ch, img_name=self.steps)
                          
         print("Train finished!")
                     
