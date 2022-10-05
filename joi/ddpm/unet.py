@@ -104,9 +104,9 @@ class ResBlock(TimestepBlock):
     """
     A residual block that can optionally change the number of channels.
 
-    :param channels: the number of input channels.
+    :param channels:     the number of input channels.
     :param emb_channels: the number of timestep embedding channels.
-    :param dropout: the rate of dropout.
+    :param dropout:      the rate of dropout.
     :param out_channels: if specified, the number of out channels.
     """
 
@@ -194,19 +194,19 @@ class Unet(nn.Module):
     """
     The full UNet model with attention and timestep embedding.
 
-    :param in_channels: channels in the input Tensor.
-    :param model_channels: base channel count for the model.
-    :param out_channels: channels in the output Tensor.
-    :param num_res_blocks: number of residual blocks per downsample.
+    :param in_channels:           channels in the input Tensor.
+    :param model_channels:        base channel count for the model.
+    :param out_channels:          channels in the output Tensor.
+    :param num_res_blocks:        number of residual blocks per downsample.
     :param attention_resolutions: a collection of downsample rates at which
-        attention will take place. May be a set, list, or tuple.
-        For example, if this contains 4, then at 4x downsampling, attention
-        will be used.
-    :param dropout: the dropout probability.
-    :param channel_mult: channel multiplier for each level of the UNet.
-    :param condition: unconditinal, class-conditional or text-conditional.
-    :param num_classes: must be speciefied, if this model is class-conditional.
-    :param num_heads: the number of attention heads in each attention layer.
+                                  attention will take place. May be a set, list, or tuple.
+                                  For example, if this contains 4, then at 4x downsampling, attention
+                                  will be used.
+    :param dropout:               the dropout probability.
+    :param channel_mult:          channel multiplier for each level of the UNet.
+    :param condition:             unconditinal, class-conditional or text-conditional.
+    :param num_classes:           must be speciefied, if this model is class-conditional.
+    :param num_heads:             the number of attention heads in each attention layer.
     """
 
     def __init__(
@@ -333,10 +333,10 @@ class Unet(nn.Module):
         """
         Apply the model to an input batch.
 
-        :param x: an [N x C x ...] Tensor of inputs.
+        :param x:         an [N x C x H x W] Tensor of inputs.
         :param timesteps: a 1-D batch of timesteps.
-        :param y: an [N] Tensor of labels, if class-conditional.
-        :return: an [N x C x ...] Tensor of outputs.
+        :param y:         an [N] Tensor of labels, if class-conditional. an [N x D] Tensor of texts, if text-conditional.
+        :return:          an [N x C x ...] Tensor of outputs.
         """
 
         hs = []
