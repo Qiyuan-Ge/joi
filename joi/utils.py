@@ -9,7 +9,7 @@ class EMA:
         decay:
         device:
     """    
-    def __init__(self, model, decay=0.99, device='cpu'):
+    def __init__(self, model, decay=0.9999, device='cpu'):
         self.model = deepcopy(model)
         self.decay = decay
         self.device = device
