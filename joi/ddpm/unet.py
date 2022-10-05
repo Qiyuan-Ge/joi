@@ -239,7 +239,7 @@ class Unet(nn.Module):
         if condition in [None, 'class', 'text']:
             self.condition = condition
         else:
-            raise ValueError('condition must be None, class or text')
+            raise ValueError(f'unknown objective {condition}. condition must be None, class or text')
         self.text_model_name = text_model_name
         self.num_classes = num_classes
         self.num_heads = num_heads
@@ -265,6 +265,8 @@ class Unet(nn.Module):
                     nn.SiLU(),
                     nn.Linear(time_embed_dim, time_embed_dim),
                 )
+            else:
+                raise ValueError(f'unknown objective {condition}')
 
         self.input_blocks = nn.ModuleList(
             [
