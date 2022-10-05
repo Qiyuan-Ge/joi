@@ -258,7 +258,13 @@ class Unet(nn.Module):
                 self.cond_emb = nn.Embedding(num_classes, time_embed_dim)
             elif condition == 'text':
                 d_model = {'t5-small':512, 't5-base':768}
-                self.cond_emb = nn.Linear(d_model[text_model_name], time_embed_dim)
+                cond_dim = d_model[text_model_name]
+                self.cond_emb = nn.Sequential(
+                    nn.LayerNorm(cond_dim),
+                    nn.Linear(cond_dim, time_embed_dim),
+                    nn.SiLU(),
+                    nn.Linear(time_embed_dim, time_embed_dim),
+                )
 
         self.input_blocks = nn.ModuleList(
             [
