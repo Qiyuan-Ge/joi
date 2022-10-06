@@ -225,25 +225,14 @@ class Unet(nn.Module):
         num_heads_upsample=-1,
     ):
         super().__init__()
-
+        self.in_channels = in_channels
+        self.out_channels = out_channels or in_channels
         if num_heads_upsample == -1:
             num_heads_upsample = num_heads
-
-        self.in_channels = in_channels
-        self.model_channels = model_channels
-        self.out_channels = out_channels or in_channels
-        self.num_res_blocks = num_res_blocks
-        self.layer_attention = layer_attention
-        self.dropout = dropout
-        self.channel_mult = channel_mult
         if condition in [None, 'class', 'text']:
             self.condition = condition
         else:
             raise ValueError(f'unknown objective {condition}. condition must be None, class or text')
-        self.text_model_name = text_model_name
-        self.num_classes = num_classes
-        self.num_heads = num_heads
-        self.num_heads_upsample = num_heads_upsample
         self.timestep_embedding = TimeEmbedding(model_channels)
 
         time_embed_dim = model_channels * 4
