@@ -80,7 +80,10 @@ add gradient clip
 - GLIDE: Towards Photorealistic Image Generation and Editing with Text-Guided Diffusion Models
   https://arxiv.org/abs/2112.10741
 - Photorealistic Text-to-Image Diffusion Models with Deep Language Understanding
+  https://arxiv.org/abs/2205.11487
 - Hierarchical Text-Conditional Image Generation with CLIP Latents
+- Perception Prioritized Training of Diffusion Models
+  https://arxiv.org/abs/2204.00227
 ````
 
 ## Citing
