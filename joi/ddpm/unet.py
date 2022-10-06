@@ -215,7 +215,7 @@ class Unet(nn.Module):
         model_channels,
         out_channels=None,
         num_res_blocks=2,
-        attention_resolutions=(32, 16, 8),
+        layer_attention=(False, False, False, True),
         dropout=0,
         channel_mult=(1, 2, 4, 8),
         condition=None,
@@ -233,7 +233,7 @@ class Unet(nn.Module):
         self.model_channels = model_channels
         self.out_channels = out_channels or in_channels
         self.num_res_blocks = num_res_blocks
-        self.attention_resolutions = attention_resolutions
+        self.layer_attention = layer_attention
         self.dropout = dropout
         self.channel_mult = channel_mult
         if condition in [None, 'class', 'text']:
@@ -260,7 +260,7 @@ class Unet(nn.Module):
                 d_model = {'t5-small':512, 't5-base':768}
                 cond_embed_dim = d_model[text_model_name]
                 self.cond_emb = nn.Sequential(
-                    nn.LayerNorm(cond_dim),
+                    nn.LayerNorm(cond_embed_dim),
                     nn.Linear(cond_embed_dim, time_embed_dim),
                     nn.SiLU(),
                     nn.Linear(time_embed_dim, time_embed_dim),
@@ -275,17 +275,17 @@ class Unet(nn.Module):
         )
         input_block_chans = [model_channels]
         ch = model_channels
-        ds = 1
         for level, mult in enumerate(channel_mult):
             for _ in range(num_res_blocks):
                 layers = [
                     ResBlock(ch, 
                              time_embed_dim, 
                              dropout, 
-                             out_channels=mult * model_channels)
+                             out_channels=mult * model_channels,       
+                    )
                 ]
                 ch = mult * model_channels
-                if ds in attention_resolutions:
+                if layer_attention[level]:
                     layers.append(
                         AttentionBlock(ch, num_heads=num_heads)
                     )
@@ -296,7 +296,6 @@ class Unet(nn.Module):
                     TimestepEmbedSequential(Downsample(ch))
                 )
                 input_block_chans.append(ch)
-                ds *= 2
 
         self.middle_block = TimestepEmbedSequential(
             ResBlock(ch, time_embed_dim, dropout),
@@ -316,13 +315,12 @@ class Unet(nn.Module):
                     )
                 ]
                 ch = model_channels * mult
-                if ds in attention_resolutions:
+                if layer_attention[level]:
                     layers.append(
                         AttentionBlock(ch, num_heads=num_heads_upsample)
                     )
                 if level and i == num_res_blocks:
                     layers.append(Upsample(ch))
-                    ds //= 2
                 self.output_blocks.append(TimestepEmbedSequential(*layers))
 
         self.out = nn.Sequential(
