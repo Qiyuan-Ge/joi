@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from einops import reduce
 from tqdm.auto import tqdm
 
 
@@ -32,7 +33,7 @@ def extract(a, t, x_shape):
 
 
 class GaussianDiffusion(nn.Module):
-    def __init__(self, model, timesteps=1000, beta_schedule='cosine', loss_type="l2"):
+    def __init__(self, model, timesteps=1000, beta_schedule='cosine', loss_type="l2", p2_loss_weight_gamma = 1.0, p2_loss_weight_k = 1):
         super().__init__()
         self.model = model
         self.timesteps = timesteps
@@ -56,6 +57,9 @@ class GaussianDiffusion(nn.Module):
         
         # calculations for posterior q(x_{t-1}|x_t, x_0)
         self.posterior_variance = self.betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
+        
+        self.use_p2_loss_reweighting = p2_loss_weight_gamma > 0.
+        self.p2_loss_weight = (p2_loss_weight_k + alphas_cumprod / (1 - alphas_cumprod)) ** -p2_loss_weight_gamma)
     
     # q(x_t|x_0)        
     def q_sample(self, x_start, t, noise=None): 
@@ -66,17 +70,22 @@ class GaussianDiffusion(nn.Module):
         
         return sqrt_alphas_cumprod_t * x_start + sqrt_one_minus_alphas_cumprod_t * noise
     
-    def loss_func(self, x, y):
+    def loss_func(self, x, y, reduction='none'):
         if self.loss_type == 'l1':
-            loss = F.l1_loss(x, y)
+            loss = F.l1_loss(x, y, reduction=reduction)
         elif self.loss_type == 'l2':
-            loss = F.mse_loss(x, y)
+            loss = F.mse_loss(x, y, reduction=reduction)
         elif self.loss_type == "huber":
-            loss = F.smooth_l1_loss(x, y)
+            loss = F.smooth_l1_loss(x, y, reduction=reduction)
         else:
             NotImplementedError()
             
         return loss
+    
+    def p2_reweigh_loss(self, loss, t):
+        if not self.use_p2_loss_reweighting:
+            return loss
+        return loss * extract(self.p2_loss_weight, t, loss.shape)
     
     # L_t^simple    
     def p_losses(self, x_start, t, noise=None, y=None):
@@ -85,8 +94,12 @@ class GaussianDiffusion(nn.Module):
 
         x_noisy = self.q_sample(x_start, t, noise)
         predicted_noise = self.model(x_noisy, t, y)
-
-        return self.loss_func(noise, predicted_noise)
+        
+        loss = self.loss_func(noise, predicted_noise)
+        loss = reduce(loss, 'b ... -> b (...)', 'mean')
+        loss = self.p2_reweigh_loss(loss, t)
+        
+        return loss.mean()
     
     def forward(self, x_start, t, noise=None, y=None):
         return self.p_losses(x_start, t, noise, y)
