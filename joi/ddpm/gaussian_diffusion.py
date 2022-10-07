@@ -33,7 +33,7 @@ def extract(a, t, x_shape):
 
 
 class GaussianDiffusion(nn.Module):
-    def __init__(self, model, timesteps=1000, beta_schedule='cosine', loss_type="l2", p2_loss_weight_gamma = 1.0, p2_loss_weight_k = 1):
+    def __init__(self, model, timesteps=1000, beta_schedule='cosine', loss_type="l2", p2_loss_weight_gamma=1.0, p2_loss_weight_k=1):
         super().__init__()
         self.model = model
         self.timesteps = timesteps
@@ -59,7 +59,7 @@ class GaussianDiffusion(nn.Module):
         self.posterior_variance = self.betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
         
         self.use_p2_loss_reweighting = p2_loss_weight_gamma > 0.
-        self.p2_loss_weight = (p2_loss_weight_k + alphas_cumprod / (1 - alphas_cumprod)) ** -p2_loss_weight_gamma)
+        self.p2_loss_weight = (p2_loss_weight_k + alphas_cumprod / (1 - alphas_cumprod)) ** -p2_loss_weight_gamma
     
     # q(x_t|x_0)        
     def q_sample(self, x_start, t, noise=None): 
@@ -85,6 +85,7 @@ class GaussianDiffusion(nn.Module):
     def p2_reweigh_loss(self, loss, t):
         if not self.use_p2_loss_reweighting:
             return loss
+        
         return loss * extract(self.p2_loss_weight, t, loss.shape)
     
     # L_t^simple    
