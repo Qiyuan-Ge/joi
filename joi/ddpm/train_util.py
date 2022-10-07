@@ -41,7 +41,7 @@ class Trainer:
         if exists(self.ema_decay):
             self.ema = EMA(self.diffusion.model, ema_decay)
         self.max_grad_norm = max_grad_norm
-        self.optimizer = torch.optim.AdamW(self.diffusion.parameters(), lr=lr, weight_decay=wd)
+        self.optimizer = torch.optim.AdamW(self.diffusion.parameters(), lr=lr, betas=(0.9, 0.99), eps = 1e-8, weight_decay=wd)
         self.diffusion, self.optimizer, self.dataloader = self.accelerator.prepare(self.diffusion, self.optimizer, dataloader)
         self.condition = condition
         if self.condition not in [None, 'text', 'class']:
