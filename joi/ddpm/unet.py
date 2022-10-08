@@ -20,20 +20,20 @@ def zero_module(module):
     return module
 
 
-class TimeEmbedding(nn.Module):
+class SinusoidalPositionEmbeddings(nn.Module):
     def __init__(self, dim):
         super().__init__()
-        half_dim = dim // 2
-        emb = -1 * math.log(10000) / (half_dim - 1)
-        self.embeddings = torch.exp(torch.arange(half_dim) * emb)
+        self.dim = dim
 
-    def forward(self, time):
-        embeddings = self.embeddings.to(time.device)
+    def forward(self, time): 
+        half_dim = self.dim // 2
+        embeddings = math.log(10000) / (half_dim - 1)
+        embeddings = torch.exp(torch.arange(half_dim, device=time.device) * -embeddings)
         embeddings = time[:, None] * embeddings[None, :]
-        embeddings = torch.cat([embeddings.sin(), embeddings.cos()], dim=-1)
-            
-        return embeddings
+        embeddings = torch.cat((embeddings.sin(), embeddings.cos()), dim=-1)
         
+        return embeddings
+      
 
 class TimestepBlock(nn.Module):
     """
@@ -233,7 +233,7 @@ class Unet(nn.Module):
             self.condition = condition
         else:
             raise ValueError(f'unknown objective {condition}. condition must be None, class or text')
-        self.timestep_embedding = TimeEmbedding(model_channels)
+        self.timestep_embedding = SinusoidalPositionEmbeddings(model_channels)
 
         time_embed_dim = model_channels * 4
         self.time_embed = nn.Sequential(
