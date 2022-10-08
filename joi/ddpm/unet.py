@@ -318,21 +318,21 @@ class Unet(nn.Module):
             zero_module(nn.Conv2d(model_channels, self.out_channels, 3, padding=1)),
         )
 
-    def forward(self, x, timesteps, y=None):
+    def forward(self, x, timesteps, cond=None):
         """
         Apply the model to an input batch.
 
         :param x:         an [N x C x H x W] Tensor of inputs.
         :param timesteps: a 1-D batch of timesteps.
-        :param y:         an [N] Tensor of labels, if class-conditional. an [N x D] Tensor of texts, if text-conditional.
+        :param cond:      an [N] Tensor of labels, if class-conditional. an [N x D] Tensor of texts, if text-conditional.
         :return:          an [N x C x ...] Tensor of outputs.
         """
 
         hs = []
         emb = self.time_embed(self.timestep_embedding(timesteps))
 
-        if exists(y):
-            emb = emb + self.cond_emb(y)
+        if exists(cond):
+            emb = emb + self.cond_emb(cond)
 
         h = x
         for module in self.input_blocks:
