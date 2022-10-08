@@ -64,6 +64,8 @@ accelerate launch --multi_gpu ddpm_train.py
 ````
 2022/10/4 
 add gradient clip
+2022/10/8 
+add p2 reweigh loss
 ````
 
 ## Reference
