@@ -28,7 +28,7 @@ def main():
     parser.add_argument("--p2_loss_weight_gamma", type=float, default=1.0, help="use p2 reweigh loss")
     parser.add_argument("--sample_interval", type=int, default=1000, help="interval between image sampling")
     parser.add_argument("--data_path", type=str, default='none', help="set your own data path")
-    parser.add_argument("--ema_decay", type=float, default=0.99, help="Exponential Moving Average, default: 0.99")
+    parser.add_argument("--ema_decay", type=float, default=0.9999, help="Exponential Moving Average, default: 0.9999")
     parser.add_argument("--num_workers", type=int, default=0, help="how many subprocesses to use for data loading, default: 0")
     parser.add_argument("--pin_memory", type=bool, default=False, help="default: False")
     arg = parser.parse_args()
