@@ -58,6 +58,7 @@ class GaussianDiffusion(nn.Module):
         # calculations for posterior q(x_{t-1}|x_t, x_0)
         self.posterior_variance = self.betas * (1. - alphas_cumprod_prev) / (1. - alphas_cumprod)
         
+        # reweigh p2 loss
         self.use_p2_loss_reweighting = p2_loss_weight_gamma > 0.
         self.p2_loss_weight = (p2_loss_weight_k + alphas_cumprod / (1 - alphas_cumprod)) ** -p2_loss_weight_gamma
     
