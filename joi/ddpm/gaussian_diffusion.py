@@ -139,5 +139,5 @@ class GaussianDiffusion(nn.Module):
         return imgs
     
     @torch.no_grad()
-    def sample(self, image_size, batch_size=16, channels=3, labels=None):
-        return self.p_sample_loop(shape=(batch_size, channels, image_size, image_size), y=labels)
+    def sample(self, image_size, batch_size=16, channels=3, conds=None):
+        return self.p_sample_loop(shape=(batch_size, channels, image_size, image_size), y=conds)
