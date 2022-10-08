@@ -355,12 +355,12 @@ class SuperResUnet(Unet):
     def __init__(self, in_channels, *args, **kwargs):
         super().__init__(in_channels * 2, *args, **kwargs)
         
-    def forward(self, x, timesteps, low_res, y=None):
+    def forward(self, x, timesteps, low_res, cond=None):
         _, _, new_h, new_w = x.shape
         upsampled = F.interpolate(low_res, (new_h, new_w), mode="bilinear")
         x = torch.cat([x, upsampled], dim=1)
         
-        return super().forward(x, timesteps, y)
+        return super().forward(x, timesteps, cond)
     
     
 class InpaintUnet(Unet):
@@ -371,8 +371,8 @@ class InpaintUnet(Unet):
     def __init__(self, in_channels, *args, **kwargs):
         super().__init__(in_channels * 2 + 1, *args, **kwargs)
 
-    def forward(self, x, timesteps, inpaint_image, inpaint_mask, y=None):
+    def forward(self, x, timesteps, inpaint_image, inpaint_mask, cond=None):
         x = torch.cat([x, inpaint_image * inpaint_mask, inpaint_mask], dim=1)
     
-        return super().forward(x, timesteps, y)
+        return super().forward(x, timesteps, cond)
            
