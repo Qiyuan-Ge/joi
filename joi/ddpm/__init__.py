@@ -1,7 +1,8 @@
 from .unet import Unet, SuperResUnet
-from .gaussian_diffusion import GaussianDiffusion
-from .train_util import Trainer
 from .pipeline import Painter
+from .train_util import Trainer
+from .gaussian_diffusion import GaussianDiffusion
+
 
 __all__ = ['create_model', 'create_sr_model', 'create_gaussian_diffusion', 'create_model_and_diffusion', 'Trainer', 'Painter']
 
@@ -66,28 +67,13 @@ def create_model(img_size=64, in_channels=3, num_res_blocks=2, out_channels=None
         raise ValueError(f"unsupported image size: {img_size}")
         
           
-def create_gaussian_diffusion(model, 
-                              timesteps=1000, 
-                              beta_schedule='cosine', 
-                              loss_type="l2"):
-    
-    return GaussianDiffusion(model, timesteps, beta_schedule, loss_type)
+def create_gaussian_diffusion(model, timesteps=1000, beta_schedule='cosine', loss_type="l2", p2_loss_weight_gamma=1.0, p2_loss_weight_k=1):
+    return GaussianDiffusion(model, timesteps, beta_schedule, loss_type, p2_loss_weight_gamma, p2_loss_weight_k)
 
 
-def create_model_and_diffusion(img_size, 
-                               in_channels=3,
-                               num_res_blocks=2,
-                               out_channels=None, 
-                               timesteps=1000, 
-                               beta_schedule='cosine', 
-                               loss_type="l1",
-                               condition=None,
-                               text_model_name='t5-base',  
-                               num_classes=None, 
-                               dropout=0,
-                               ):
+def create_model_and_diffusion(img_size, in_channels=3, num_res_blocks=2, out_channels=None, timesteps=1000, beta_schedule='cosine', loss_type="l1", condition=None, text_model_name='t5-base', num_classes=None, dropout=0, p2_loss_weight_gamma=1.0, p2_loss_weight_k=1):
     model = create_model(img_size, in_channels, num_res_blocks, out_channels, condition, text_model_name, num_classes, dropout)
-    diffusion = create_gaussian_diffusion(model, timesteps, beta_schedule, loss_type)
+    diffusion = create_gaussian_diffusion(model, timesteps, beta_schedule, loss_type, p2_loss_weight_gamma, p2_loss_weight_k)
     
     return model, diffusion
 
