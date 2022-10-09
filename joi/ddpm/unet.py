@@ -256,11 +256,11 @@ class Unet(nn.Module):
 
     def __init__(
         self,
-        in_channels,
-        model_channels,
-        out_channels=None,
+        in_dim,
+        d_model,
+        out_dim=None,
         num_res_blocks=2,
-        channel_mult=(1, 2, 4, 8),
+        dim_mult=(1, 2, 4, 8),
         layer_attention=(False, False, False, True),
         layer_cross_attention=(False, False, False, True),
         dropout=0,
@@ -271,19 +271,19 @@ class Unet(nn.Module):
         num_heads_upsample=-1,
     ):
         super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels or in_channels
+        self.in_dim = in_dim
+        self.out_dim = out_dim or in_dim
         if num_heads_upsample == -1:
             num_heads_upsample = num_heads
         if condition in [None, 'class', 'text']:
             self.condition = condition
         else:
             raise ValueError(f'unknown objective {condition}. condition must be None, class or text')
-        self.timestep_embedding = SinusoidalPositionEmbeddings(model_channels)
+        self.timestep_embedding = SinusoidalPositionEmbeddings(d_model)
 
-        time_cond_dim = model_channels * 4
+        time_cond_dim = d_model * 4
         self.time_embed = nn.Sequential(
-            nn.Linear(model_channels, time_cond_dim),
+            nn.Linear(d_model, time_cond_dim),
             nn.SiLU(),
             nn.Linear(time_cond_dim, time_cond_dim),
         )
@@ -305,29 +305,29 @@ class Unet(nn.Module):
 
         self.input_blocks = nn.ModuleList(
             [
-                TimestepEmbedSequential(nn.Conv2d(in_channels, model_channels, 3, padding=1))
+                TimestepEmbedSequential(nn.Conv2d(in_dim, d_model, 3, padding=1))
             ]
         )
-        input_block_chans = [model_channels]
-        ch = model_channels
-        for level, mult in enumerate(channel_mult):
+        input_block_chans = [d_model]
+        ch = d_model
+        for level, mult in enumerate(dim_mult):
             for _ in range(num_res_blocks):
                 layers = [
                     ResBlock(ch, 
                              time_cond_dim, 
                              dropout, 
-                             out_dim=mult * model_channels, 
+                             out_dim=mult * d_model, 
                              use_cross_attention=layer_cross_attention[level],   
                     )
                 ]
-                ch = mult * model_channels
+                ch = mult * d_model
                 if layer_attention[level]:
                     layers.append(
                         AttentionBlock(ch, num_heads=num_heads)
                     )
                 self.input_blocks.append(TimestepEmbedSequential(*layers))
                 input_block_chans.append(ch)
-            if level != len(channel_mult) - 1:
+            if level != len(dim_mult) - 1:
                 self.input_blocks.append(
                     TimestepEmbedSequential(Downsample(ch))
                 )
@@ -340,18 +340,18 @@ class Unet(nn.Module):
         )
 
         self.output_blocks = nn.ModuleList([])
-        for level, mult in list(enumerate(channel_mult))[::-1]:
+        for level, mult in list(enumerate(dim_mult))[::-1]:
             for i in range(num_res_blocks + 1):
                 layers = [
                     ResBlock(
                         ch + input_block_chans.pop(),
                         time_cond_dim,
                         dropout,
-                        out_dim=model_channels * mult,
+                        out_dim=d_model * mult,
                         use_cross_attention=layer_cross_attention[level],
                     )
                 ]
-                ch = model_channels * mult
+                ch = d_model * mult
                 if layer_attention[level]:
                     layers.append(
                         AttentionBlock(ch, num_heads=num_heads_upsample)
@@ -363,7 +363,7 @@ class Unet(nn.Module):
         self.out = nn.Sequential(
             nn.GroupNorm(32, ch),
             nn.SiLU(),
-            zero_module(nn.Conv2d(model_channels, self.out_channels, 3, padding=1)),
+            zero_module(nn.Conv2d(d_model, self.out_dim, 3, padding=1)),
         )
 
     def forward(self, x, timesteps, cond=None):
