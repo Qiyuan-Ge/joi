@@ -169,8 +169,8 @@ class AttentionBlock(nn.Module):
     def __init__(self, channels, num_heads=4):
         super().__init__()
         assert channels % num_heads == 0
-        num_head_channels = channels // num_heads
-        self.scale = math.sqrt(num_head_channels)
+        dim_head = channels // num_heads
+        self.scale = math.sqrt(dim_head)
         self.num_heads = num_heads
         self.norm = nn.GroupNorm(32, channels)
         self.to_qkv = nn.Conv2d(channels, channels * 3, 1, bias=False)
