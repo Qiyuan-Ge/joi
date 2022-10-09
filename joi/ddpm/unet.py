@@ -41,7 +41,7 @@ class TimestepBlock(nn.Module):
     """
 
     @abstractmethod
-    def forward(self, x, emb):
+    def forward(self, x, emb, cond=None):
         """
         Apply the module to `x` given `emb` timestep embeddings.
         """
@@ -53,12 +53,13 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
     support it as an extra input.
     """
 
-    def forward(self, x, emb):
+    def forward(self, x, emb, cond=None):
         for layer in self:
             if isinstance(layer, TimestepBlock):
-                x = layer(x, emb)
+                x = layer(x, emb, cond)
             else:
                 x = layer(x)
+                
         return x
 
 
@@ -69,13 +70,13 @@ class Upsample(nn.Module):
     :param channels: channels in the inputs and outputs.
     """
 
-    def __init__(self, channels):
+    def __init__(self, dim):
         super().__init__()
-        self.channels = channels
-        self.conv = nn.Conv2d(channels, channels, 3, padding=1)
+        self.dim = dim
+        self.conv = nn.Conv2d(dim, dim, 3, padding=1)
 
     def forward(self, x):
-        assert x.shape[1] == self.channels
+        assert x.shape[1] == self.dim
         x = F.interpolate(x, scale_factor=2, mode="nearest")
         x = self.conv(x)
         
@@ -89,13 +90,13 @@ class Downsample(nn.Module):
     :param channels: channels in the inputs and outputs.
     """
 
-    def __init__(self, channels):
+    def __init__(self, dim):
         super().__init__()
-        self.channels = channels
-        self.conv = nn.Conv2d(channels, channels, 3, stride=2, padding=1)
+        self.dim = dim
+        self.conv = nn.Conv2d(dim, dim, 3, stride=2, padding=1)
 
     def forward(self, x):
-        assert x.shape[1] == self.channels
+        assert x.shape[1] == self.dim
         
         return self.conv(x)
 
@@ -104,47 +105,52 @@ class ResBlock(TimestepBlock):
     """
     A residual block that can optionally change the number of channels.
 
-    :param channels:     the number of input channels.
-    :param emb_channels: the number of timestep embedding channels.
+    :param dim:     the number of input channels.
+    :param time_cond_dim: the number of timestep embedding channels.
     :param dropout:      the rate of dropout.
-    :param out_channels: if specified, the number of out channels.
+    :param out_dim: if specified, the number of out channels.
     """
 
     def __init__(
         self,
-        channels,
-        emb_channels,
+        dim,
+        time_cond_dim,
         dropout,
-        out_channels=None,
+        out_dim=None,
+        use_cross_attention=True
     ):
         super().__init__()
-        self.channels = channels
-        self.emb_channels = emb_channels
-        self.dropout = dropout
-        self.out_channels = out_channels or channels
-
-        self.in_layers = nn.Sequential(
-            nn.GroupNorm(32, channels),
+        self.dim = dim
+        self.out_dim = out_dim or dim
+        self.use_cross_atten = use_cross_attention
+        
+        self.layer_1 = nn.Sequential(
+            nn.GroupNorm(32, dim),
             nn.SiLU(),
-            nn.Conv2d(channels, self.out_channels, 3, padding=1),
+            nn.Conv2d(dim, self.out_dim, 3, padding=1),
         )
-        self.emb_layers = nn.Sequential(
+        
+        if use_cross_attention:
+            self.cross_atten = CrossAttention(self.out_dim, time_cond_dim)
+        
+        self.layer_t = nn.Sequential(
             nn.SiLU(),
-            nn.Linear(emb_channels, 2 * self.out_channels),
+            nn.Linear(time_cond_dim, 2 * self.out_dim),
         )
-        self.out_layers = nn.Sequential(
-            nn.GroupNorm(32, self.out_channels),
+        
+        self.layer_2 = nn.Sequential(
+            nn.GroupNorm(32, self.out_dim),
             nn.SiLU(),
             nn.Dropout(p=dropout),
-            zero_module(nn.Conv2d(self.out_channels, self.out_channels, 3, padding=1)),
+            zero_module(nn.Conv2d(self.out_dim, self.out_dim, 3, padding=1)),
         )
 
-        if self.out_channels == channels:
+        if self.out_dim == dim:
             self.skip_connection = nn.Identity()
         else:
-            self.skip_connection = nn.Conv2d(channels, self.out_channels, 3, padding=1)
+            self.skip_connection = nn.Conv2d(dim, self.out_dim, 3, padding=1)
 
-    def forward(self, x, emb):
+    def forward(self, x, emb, cond=None):
         """
         Apply the block to a Tensor, conditioned on a timestep embedding.
 
@@ -152,29 +158,68 @@ class ResBlock(TimestepBlock):
         :param emb: an [N x emb_channels] Tensor of timestep embeddings.
         :return: an [N x C x ...] Tensor of outputs.
         """
-        h = self.in_layers(x)
-        emb_out = self.emb_layers(emb).type(h.dtype)
+        h = self.layer_1(x)
+        if self.use_cross_atten:
+            H, W = h.shape[-2:]
+            h = rearrange(h, 'b c h w -> b (h w) c')
+            h = self.cross_atten(h, cond) + h
+            h = rearrange(h, 'b (h w) c -> b c h w', h=H, w=W)
+        
+        emb_out = self.layer_t(emb).type(h.dtype)
         while len(emb_out.shape) < len(h.shape):
             emb_out = emb_out[..., None]
         # use scale_shift_norm
-        out_norm, out_rest = self.out_layers[0], self.out_layers[1:]
+        out_norm, out_rest = self.layer_2[0], self.layer_2[1:]
         scale, shift = torch.chunk(emb_out, 2, dim=1)
         h = out_norm(h) * (1 + scale) + shift
         h = out_rest(h)
             
         return self.skip_connection(x) + h
+
+
+class CrossAttention(nn.Module):
+    def __init__(self, dim, context_dim, num_heads=8):
+        super().__init__()
+        assert dim % num_heads == 0
+        dim_head = dim // num_heads
+        self.num_heads = num_heads
+        self.scale = math.sqrt(dim_head)
+        self.norm = nn.LayerNorm(dim)
+        self.norm_context = nn.LayerNorm(context_dim)
+        self.to_q = nn.Linear(dim, dim, bias=False)
+        self.to_k = nn.Linear(context_dim, dim, bias=False)
+        self.to_v = nn.Linear(context_dim, dim, bias=False)
+        self.proj = nn.Sequential(
+            nn.Linear(dim, dim, bias=False),
+            nn.LayerNorm(dim),
+        )
+        
+    def forward(self, x, context):
+        x = self.norm(x)
+        context = self.norm_context(context)
+        q = self.to_q(x)
+        k = self.to_k(context)
+        v = self.to_v(context)
+        q, k, v = [rearrange(x, 'b n (h d) -> b h n d', h=self.num_heads) for x in (q, k, v)]
+        q = q * self.scale
+        sim = torch.einsum('b h i d, b h j d -> b h i j', q, k)
+        attn_p = F.softmax(sim, dim=-1)
+        out = torch.einsum('b h i j, b h j d -> b h i d', attn_p, v)
+        out = rearrange(out, 'b h n d -> b n (h d)')
+
+        return self.proj(out)
     
     
 class AttentionBlock(nn.Module):
-    def __init__(self, channels, num_heads=4):
+    def __init__(self, dim, num_heads=4):
         super().__init__()
-        assert channels % num_heads == 0
-        dim_head = channels // num_heads
+        assert dim % num_heads == 0
+        dim_head = dim // num_heads
         self.scale = math.sqrt(dim_head)
         self.num_heads = num_heads
-        self.norm = nn.GroupNorm(32, channels)
-        self.to_qkv = nn.Conv2d(channels, channels * 3, 1, bias=False)
-        self.to_out = nn.Conv2d(channels, channels, 1)
+        self.norm = nn.GroupNorm(32, dim)
+        self.to_qkv = nn.Conv2d(dim, dim * 3, 1, bias=False)
+        self.to_out = nn.Conv2d(dim, dim, 1)
         
     def forward(self, x):
         _, _, h, w = x.shape
@@ -217,6 +262,7 @@ class Unet(nn.Module):
         num_res_blocks=2,
         channel_mult=(1, 2, 4, 8),
         layer_attention=(False, False, False, True),
+        layer_cross_attention=(False, False, False, True),
         dropout=0,
         condition=None,
         text_model_name='t5-base',
@@ -235,24 +281,24 @@ class Unet(nn.Module):
             raise ValueError(f'unknown objective {condition}. condition must be None, class or text')
         self.timestep_embedding = SinusoidalPositionEmbeddings(model_channels)
 
-        time_embed_dim = model_channels * 4
+        time_cond_dim = model_channels * 4
         self.time_embed = nn.Sequential(
-            nn.Linear(model_channels, time_embed_dim),
+            nn.Linear(model_channels, time_cond_dim),
             nn.SiLU(),
-            nn.Linear(time_embed_dim, time_embed_dim),
+            nn.Linear(time_cond_dim, time_cond_dim),
         )
 
         if exists(condition):
             if condition == 'class':
-                self.cond_emb = nn.Embedding(num_classes, time_embed_dim)
+                self.cond_emb = nn.Embedding(num_classes, time_cond_dim)
             elif condition == 'text':
                 d_model = {'t5-small':512, 't5-base':768}
                 cond_embed_dim = d_model[text_model_name]
                 self.cond_emb = nn.Sequential(
                     nn.LayerNorm(cond_embed_dim),
-                    nn.Linear(cond_embed_dim, time_embed_dim),
+                    nn.Linear(cond_embed_dim, time_cond_dim),
                     nn.SiLU(),
-                    nn.Linear(time_embed_dim, time_embed_dim),
+                    nn.Linear(time_cond_dim, time_cond_dim),
                 )
             else:
                 raise ValueError(f'unknown objective {condition}')
@@ -268,9 +314,10 @@ class Unet(nn.Module):
             for _ in range(num_res_blocks):
                 layers = [
                     ResBlock(ch, 
-                             time_embed_dim, 
+                             time_cond_dim, 
                              dropout, 
-                             out_channels=mult * model_channels,       
+                             out_dim=mult * model_channels, 
+                             use_cross_attention=layer_cross_attention[level],   
                     )
                 ]
                 ch = mult * model_channels
@@ -287,9 +334,9 @@ class Unet(nn.Module):
                 input_block_chans.append(ch)
 
         self.middle_block = TimestepEmbedSequential(
-            ResBlock(ch, time_embed_dim, dropout),
+            ResBlock(ch, time_cond_dim, dropout, use_cross_attention=True),
             AttentionBlock(ch, num_heads=num_heads),
-            ResBlock(ch, time_embed_dim, dropout),
+            ResBlock(ch, time_cond_dim, dropout, use_cross_attention=True),
         )
 
         self.output_blocks = nn.ModuleList([])
@@ -298,9 +345,10 @@ class Unet(nn.Module):
                 layers = [
                     ResBlock(
                         ch + input_block_chans.pop(),
-                        time_embed_dim,
+                        time_cond_dim,
                         dropout,
-                        out_channels=model_channels * mult,
+                        out_dim=model_channels * mult,
+                        use_cross_attention=layer_cross_attention[level],
                     )
                 ]
                 ch = model_channels * mult
@@ -329,19 +377,21 @@ class Unet(nn.Module):
         """
 
         hs = []
-        emb = self.time_embed(self.timestep_embedding(timesteps))
+        time = self.time_embed(self.timestep_embedding(timesteps))
 
         if exists(cond):
-            emb = emb + self.cond_emb(cond)
+            cond = self.cond_emb(cond)
+            if len(cond.shape) == 2:
+                cond = cond.unsqueeze(1)
 
         h = x
         for module in self.input_blocks:
-            h = module(h, emb)
+            h = module(h, time, cond)
             hs.append(h)
-        h = self.middle_block(h, emb)
+        h = self.middle_block(h, time, cond)
         for module in self.output_blocks:
             cat_in = torch.cat([h, hs.pop()], dim=1)
-            h = module(cat_in, emb)
+            h = module(cat_in, time, cond)
         
         return self.out(h)
 
