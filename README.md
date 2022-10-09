@@ -65,7 +65,11 @@ accelerate launch --multi_gpu ddpm_train.py
 2022/10/4 
 add gradient clip
 2022/10/8 
-add p2 reweigh loss
+add p2 reweigh loss 
+from <Perception Prioritized Training of Diffusion Models(https://arxiv.org/abs/2204.00227)>
+2022/10/9
+add cross attention 
+from <CrossViT: Cross-Attention Multi-Scale Vision Transformer for Image Classification(https://arxiv.org/abs/2103.14899)> 
 ````
 
 ## Reference
