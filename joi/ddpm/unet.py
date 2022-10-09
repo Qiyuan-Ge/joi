@@ -239,19 +239,16 @@ class Unet(nn.Module):
     """
     The full UNet model with attention and timestep embedding.
 
-    :param in_channels:           channels in the input Tensor.
-    :param model_channels:        base channel count for the model.
-    :param out_channels:          channels in the output Tensor.
-    :param num_res_blocks:        number of residual blocks per downsample.
-    :param attention_resolutions: a collection of downsample rates at which
-                                  attention will take place. May be a set, list, or tuple.
-                                  For example, if this contains 4, then at 4x downsampling, attention
-                                  will be used.
-    :param dropout:               the dropout probability.
-    :param channel_mult:          channel multiplier for each level of the UNet.
-    :param condition:             unconditinal, class-conditional or text-conditional.
-    :param num_classes:           must be speciefied, if this model is class-conditional.
-    :param num_heads:             the number of attention heads in each attention layer.
+    :param in_dim:           channels in the input Tensor.
+    :param d_model:          base channel count for the model.
+    :param out_dim:          channels in the output Tensor.
+    :param num_res_blocks:   number of residual blocks per downsample.
+    :param layer_attention:  a collection of downsample rates at which attention will take place.
+    :param dropout:          the dropout probability.
+    :param dim_mult:         channel multiplier for each level of the UNet.
+    :param condition:        unconditinal, class-conditional or text-conditional.
+    :param num_classes:      must be speciefied, if this model is class-conditional.
+    :param num_heads:        the number of attention heads in each attention layer.
     """
 
     def __init__(
@@ -282,7 +279,7 @@ class Unet(nn.Module):
         self.timestep_embedding = SinusoidalPositionEmbeddings(d_model)
 
         time_cond_dim = d_model * 4
-        self.time_embed = nn.Sequential(
+        self.time_emb = nn.Sequential(
             nn.Linear(d_model, time_cond_dim),
             nn.SiLU(),
             nn.Linear(time_cond_dim, time_cond_dim),
@@ -293,10 +290,10 @@ class Unet(nn.Module):
                 self.cond_emb = nn.Embedding(num_classes, time_cond_dim)
             elif condition == 'text':
                 d_model = {'t5-small':512, 't5-base':768}
-                cond_embed_dim = d_model[text_model_name]
+                cond_emb_dim = d_model[text_model_name]
                 self.cond_emb = nn.Sequential(
-                    nn.LayerNorm(cond_embed_dim),
-                    nn.Linear(cond_embed_dim, time_cond_dim),
+                    nn.LayerNorm(cond_emb_dim),
+                    nn.Linear(cond_emb_dim, time_cond_dim),
                     nn.SiLU(),
                     nn.Linear(time_cond_dim, time_cond_dim),
                 )
@@ -377,10 +374,11 @@ class Unet(nn.Module):
         """
 
         hs = []
-        time = self.time_embed(self.timestep_embedding(timesteps))
+        time = self.time_emb(self.timestep_embedding(timesteps))
 
         if exists(cond):
             cond = self.cond_emb(cond)
+            time = time + cond
             if len(cond.shape) == 2:
                 cond = cond.unsqueeze(1)
 
