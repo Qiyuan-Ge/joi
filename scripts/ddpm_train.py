@@ -90,9 +90,9 @@ def main():
 
         
     model, diffusion = ddpm.create_model_and_diffusion(img_size=arg.img_size, 
-                                                       in_channels=arg.channels,
+                                                       in_dim=arg.channels,
                                                        num_res_blocks=arg.num_res_blocks,
-                                                       out_channels=arg.out_channels, 
+                                                       out_dim=arg.out_channels, 
                                                        timesteps=arg.timesteps, 
                                                        beta_schedule=arg.beta_schedule, 
                                                        loss_type=arg.loss_type,
