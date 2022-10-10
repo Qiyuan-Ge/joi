@@ -71,9 +71,11 @@ class Trainer:
             n_row = min(n_row, self.curr_cond.shape[0])
             if self.condition == 'class':
                 conds = self.curr_cond[:n_row].repeat(n_col)
+                gen_images = unwrap_diffusion.sample(img_size, n_row*n_col, channels, conds)[-1]
             elif self.condition == 'text':
-                conds = self.curr_cond[:n_row].repeat(n_col, 1)
-            gen_images = unwrap_diffusion.sample(img_size, n_row*n_col, channels, conds)[-1]       
+                conds = self.curr_cond[:n_row].repeat(n_col, 1, 1)
+                masks = self.curr_mask[:n_row].repeat(n_col, 1)
+                gen_images = unwrap_diffusion.sample(img_size, n_row*n_col, channels, conds, masks)[-1]       
         else:
             gen_images = unwrap_diffusion.sample(img_size, n_row*n_col, channels)[-1]
         gen_images = reverse_transform(gen_images, clip=True)
@@ -88,12 +90,13 @@ class Trainer:
             with tqdm(self.dataloader, dynamic_ncols=True) as tqdm_dataloader:
                 for batch in tqdm_dataloader:
                     self.optimizer.zero_grad()
-                    
-                    imgs, cond = batch
-                    bs, ch, img_size, img_size = imgs.shape
+                    mask = None
+                    if self.condition == 'text':
+                        imgs, cond, mask = batch
+                    bs, ch, img_size, _ = imgs.shape
                     t = torch.randint(0, self.timesteps, (bs,), device=self.device).long()
                     if exists(self.condition):
-                        loss = self.diffusion(imgs, t, y=cond)
+                        loss = self.diffusion(imgs, t, y=cond, text_mask=mask)
                     else:
                         loss = self.diffusion(imgs, t)
                     
@@ -121,6 +124,7 @@ class Trainer:
                         self._lr_update()
                     if self.steps != 0 and self.steps % self.sample_interval == 0:
                         self.curr_cond = cond
+                        self.curr_mask = mask
                         self.sample_and_save(img_size, channels=ch, img_name=self.steps)
                          
         print("Train finished!")
