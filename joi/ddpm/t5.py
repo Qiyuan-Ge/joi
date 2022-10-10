@@ -76,4 +76,4 @@ def encode_text(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, pad=PAD_id, cud
         output = t5(input_ids=token_ids, attention_mask=attn_mask)
         encoded_text = output.last_hidden_state.detach()    
         
-    return encoded_text, attn_mask
+    return encoded_text, attn_mask.bool()
