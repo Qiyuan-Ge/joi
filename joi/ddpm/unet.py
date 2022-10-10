@@ -4,7 +4,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 from einops import rearrange
 from abc import abstractmethod
-from .t5 import create_encoder, create_mask
 
 
 def exists(x):
@@ -53,10 +52,10 @@ class TimestepEmbedSequential(nn.Sequential, TimestepBlock):
     support it as an extra input.
     """
 
-    def forward(self, x, emb, cond=None):
+    def forward(self, x, emb, cond=None, text_mask=None):
         for layer in self:
             if isinstance(layer, TimestepBlock):
-                x = layer(x, emb, cond)
+                x = layer(x, emb, cond, text_mask)
             else:
                 x = layer(x)
                 
@@ -150,7 +149,7 @@ class ResBlock(TimestepBlock):
         else:
             self.skip_connection = nn.Conv2d(dim, self.out_dim, 3, padding=1)
 
-    def forward(self, x, emb, cond=None):
+    def forward(self, x, emb, cond=None, text_mask=None):
         """
         Apply the block to a Tensor, conditioned on a timestep embedding.
 
@@ -162,7 +161,7 @@ class ResBlock(TimestepBlock):
         if self.use_cross_atten:
             H, W = h.shape[-2:]
             h = rearrange(h, 'b c h w -> b (h w) c')
-            h = self.cross_atten(h, cond) + h
+            h = self.cross_atten(h, cond, text_mask) + h
             h = rearrange(h, 'b (h w) c -> b c h w', h=H, w=W)
         
         emb_out = self.layer_t(emb).type(h.dtype)
@@ -289,10 +288,10 @@ class Unet(nn.Module):
                 self.cond_emb = nn.Embedding(num_classes, time_cond_dim)
             elif condition == 'text':
                 d_model = {'t5-small':512, 't5-base':768}
-                cond_emb_dim = d_model[text_model_name]
+                cond_text_dim = d_model[text_model_name]
                 self.cond_emb = nn.Sequential(
-                    nn.LayerNorm(cond_emb_dim),
-                    nn.Linear(cond_emb_dim, time_cond_dim),
+                    nn.LayerNorm(cond_text_dim),
+                    nn.Linear(cond_text_dim, time_cond_dim),
                     nn.SiLU(),
                     nn.Linear(time_cond_dim, time_cond_dim),
                 )
@@ -362,7 +361,7 @@ class Unet(nn.Module):
             zero_module(nn.Conv2d(d_model, self.out_dim, 3, padding=1)),
         )
 
-    def forward(self, x, timesteps, cond=None):
+    def forward(self, x, timesteps, cond=None, text_mask=None):
         """
         Apply the model to an input batch.
 
@@ -383,12 +382,12 @@ class Unet(nn.Module):
 
         h = x
         for module in self.input_blocks:
-            h = module(h, time, cond)
+            h = module(h, time, cond, text_mask)
             hs.append(h)
-        h = self.middle_block(h, time, cond)
+        h = self.middle_block(h, time, cond, text_mask)
         for module in self.output_blocks:
-            cat_in = torch.cat([h, hs.pop()], dim=1)
-            h = module(cat_in, time, cond)
+            h = torch.cat([h, hs.pop()], dim=1)
+            h = module(h, time, cond, text_mask)
         
         return self.out(h)
 
