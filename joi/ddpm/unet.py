@@ -287,8 +287,8 @@ class Unet(nn.Module):
             if condition == 'class':
                 self.cond_emb = nn.Embedding(num_classes, time_cond_dim)
             elif condition == 'text':
-                d_model = {'t5-small':512, 't5-base':768}
-                cond_text_dim = d_model[text_model_name]
+                dim_t5 = {'t5-small':512, 't5-base':768}
+                cond_text_dim = dim_t5[text_model_name]
                 self.cond_emb = nn.Sequential(
                     nn.LayerNorm(cond_text_dim),
                     nn.Linear(cond_text_dim, time_cond_dim),
