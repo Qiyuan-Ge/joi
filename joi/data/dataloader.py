@@ -32,9 +32,9 @@ class collate_fn:
             img_batch.append(img.unsqueeze(0))
             txt_batch.append(txt)
         img_batch = torch.cat(img_batch, dim=0)
-        encoded_txt = self.encode_text(txt_batch)
+        encoded_text, attn_mask = self.encode_text(txt_batch)
 
-        return img_batch, encoded_txt
+        return img_batch, encoded_text, attn_mask
 
     
 def Txt2ImgDataloader(dataset, batch_size, shuffle=True, text_model_name=DEFAULT_T5_NAME, num_workers=0, pin_memory=False):
