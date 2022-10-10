@@ -190,7 +190,7 @@ class CrossAttention(nn.Module):
         self.to_v = nn.Linear(context_dim, inner_dim, bias=False)
         self.proj = nn.Linear(inner_dim, dim, bias=False)
         
-    def forward(self, x, context):
+    def forward(self, x, context, mask=None):
         x = self.norm(x)
         context = self.norm_context(context)
         q = self.to_q(x)
@@ -198,6 +198,10 @@ class CrossAttention(nn.Module):
         v = self.to_v(context)
         q, k, v = [rearrange(x, 'b n (h d) -> b h n d', h=self.num_heads) for x in (q, k, v)]
         sim = torch.einsum('b h i d, b h j d -> b h i j', q, k) / self.scale
+        if exists(mask):
+            max_neg_value = -torch.finfo(sim.dtype).max
+            mask = repeat(mask, 'b j -> b h () j', h=self.num_heads)
+            sim.masked_fill_(~mask, max_neg_value)
         attn_p = sim.softmax(dim=-1)
         out = torch.einsum('b h i j, b h j d -> b h i d', attn_p, v)
         out = rearrange(out, 'b h n d -> b n (h d)')
