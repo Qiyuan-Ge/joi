@@ -90,9 +90,11 @@ class Trainer:
             with tqdm(self.dataloader, dynamic_ncols=True) as tqdm_dataloader:
                 for batch in tqdm_dataloader:
                     self.optimizer.zero_grad()
-                    mask = None
                     if self.condition == 'text':
                         imgs, cond, mask = batch
+                    else:
+                        mask = None
+                        imgs, cond = batch
                     bs, ch, img_size, _ = imgs.shape
                     t = torch.randint(0, self.timesteps, (bs,), device=self.device).long()
                     if exists(self.condition):
