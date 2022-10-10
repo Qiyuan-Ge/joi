@@ -41,12 +41,15 @@ def create_mask_and_weight(token_ids, pad=PAD_id):
 def tokenize(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH):
     tokenizer = create_tokenizer(name)
     encoded = tokenizer.batch_encode_plus(texts, return_tensors="pt", padding='longest', max_length=max_len, truncation=True)
+    input_ids = encoded.input_ids
+    attn_mask = encoded.attention_mask
 
-    return encoded.input_ids
+    return input_ids, attn_mask
 
 
-def encode_text(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, pad=PAD_id, eos=EOS_id, cuda=False):
-    token_ids = tokenize(texts, name, max_len)
+def encode_text_v0(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, pad=PAD_id, eos=EOS_id, cuda=False):
+    # encode text directly to sentence. (b n) -> (b l)
+    token_ids, attn_mask = tokenize(texts, name, max_len)
     attn_mask, weight = create_mask_and_weight(token_ids, pad)
     t5 = create_encoder(name)
     if cuda:
@@ -59,3 +62,18 @@ def encode_text(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, pad=PAD_id, eos
         encoded_text = output.last_hidden_state.detach()    
         
     return (encoded_text * weight.unsqueeze(-1)).sum(-2)
+
+
+def encode_text(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, pad=PAD_id, eos=EOS_id, cuda=False):
+    token_ids, attn_mask = tokenize(texts, name, max_len)
+    t5 = create_encoder(name)
+    if cuda:
+        t5.cuda()
+        token_ids = token_ids.cuda()
+        attn_mask = attn_mask.cuda()
+    t5.eval()
+    with torch.no_grad():
+        output = t5(input_ids=token_ids, attention_mask=attn_mask)
+        encoded_text = output.last_hidden_state.detach()    
+        
+    return encoded_text, attn_mask
