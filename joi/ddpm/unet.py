@@ -199,7 +199,7 @@ class CrossAttention(nn.Module):
         sim = torch.einsum('b h i d, b h j d -> b h i j', q, k) / self.scale
         if exists(mask):
             max_neg_value = -torch.finfo(sim.dtype).max
-            mask = repeat(mask, 'b j -> b h () j', h=self.num_heads)
+            mask = repeat(mask, 'b j -> b 1 1 j')
             sim.masked_fill_(~mask, max_neg_value)
         attn_p = sim.softmax(dim=-1)
         out = torch.einsum('b h i j, b h j d -> b h i d', attn_p, v)
