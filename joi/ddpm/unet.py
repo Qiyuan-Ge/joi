@@ -2,7 +2,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from einops import rearrange
+from einops import rearrange, repeat
 from abc import abstractmethod
 
 
@@ -376,7 +376,6 @@ class Unet(nn.Module):
 
         if exists(cond):
             cond = self.cond_emb(cond)
-            time = time + cond
             if len(cond.shape) == 2:
                 cond = cond.unsqueeze(1)
 
