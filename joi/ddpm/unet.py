@@ -178,21 +178,17 @@ class ResBlock(TimestepBlock):
 
 
 class CrossAttention(nn.Module):
-    def __init__(self, dim, context_dim, num_heads=8):
+    def __init__(self, dim, context_dim, num_heads=8, dim_head=64):
         super().__init__()
-        assert dim % num_heads == 0
-        dim_head = dim // num_heads
+        inner_dim = dim_head * num_heads
         self.num_heads = num_heads
         self.scale = math.sqrt(dim_head)
         self.norm = nn.LayerNorm(dim)
         self.norm_context = nn.LayerNorm(context_dim)
-        self.to_q = nn.Linear(dim, dim, bias=False)
-        self.to_k = nn.Linear(context_dim, dim, bias=False)
-        self.to_v = nn.Linear(context_dim, dim, bias=False)
-        self.proj = nn.Sequential(
-            nn.Linear(dim, dim, bias=False),
-            nn.LayerNorm(dim),
-        )
+        self.to_q = nn.Linear(dim, inner_dim, bias=False)
+        self.to_k = nn.Linear(context_dim, inner_dim, bias=False)
+        self.to_v = nn.Linear(context_dim, inner_dim, bias=False)
+        self.proj = nn.Linear(inner_dim, dim, bias=False)
         
     def forward(self, x, context):
         x = self.norm(x)
@@ -201,9 +197,8 @@ class CrossAttention(nn.Module):
         k = self.to_k(context)
         v = self.to_v(context)
         q, k, v = [rearrange(x, 'b n (h d) -> b h n d', h=self.num_heads) for x in (q, k, v)]
-        q = q * self.scale
-        sim = torch.einsum('b h i d, b h j d -> b h i j', q, k)
-        attn_p = F.softmax(sim, dim=-1)
+        sim = torch.einsum('b h i d, b h j d -> b h i j', q, k) / self.scale
+        attn_p = sim.softmax(dim=-1)
         out = torch.einsum('b h i j, b h j d -> b h i d', attn_p, v)
         out = rearrange(out, 'b h n d -> b n (h d)')
 
