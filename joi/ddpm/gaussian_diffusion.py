@@ -84,18 +84,18 @@ class GaussianDiffusion(nn.Module):
         return loss
     
     def p2_reweigh_loss(self, loss, t):
-        if not self.use_p2_loss_reweighting:
+        if self.use_p2_loss_reweighting:
+            return loss * extract(self.p2_loss_weight, t, loss.shape)
+        else:
             return loss
-        
-        return loss * extract(self.p2_loss_weight, t, loss.shape)
     
     # L_t^simple    
-    def p_losses(self, x_start, t, noise=None, y=None, text_mask=None):
+    def p_losses(self, x_start, t, noise=None, cond=None, text_mask=None):
         if noise is None:
             noise = torch.randn_like(x_start)
 
         x_noisy = self.q_sample(x_start, t, noise)
-        predicted_noise = self.model(x_noisy, t, y, text_mask)
+        predicted_noise = self.model(x_noisy, t, cond, text_mask)
         
         loss = self.loss_func(noise, predicted_noise)
         loss = reduce(loss, 'b ... -> b (...)', 'mean')
@@ -103,41 +103,43 @@ class GaussianDiffusion(nn.Module):
         
         return loss.mean()
     
-    def forward(self, x_start, t, noise=None, y=None, text_mask=None):
-        return self.p_losses(x_start, t, noise, y, text_mask)
+    def forward(self, x_start, t, noise=None, cond=None, text_mask=None):
+        return self.p_losses(x_start, t, noise, cond, text_mask)
     
+    def p_mean_variance(self, x, t, cond=None, text_mask=None):
+        betas_t = extract(self.betas, t, x.shape)
+        sqrt_recip_alphas_t = extract(self.sqrt_recip_alphas, t, x.shape)
+        sqrt_one_minus_alphas_cumprod_t = extract(self.sqrt_one_minus_alphas_cumprod, t, x.shape)
+        model_mean = sqrt_recip_alphas_t * (x - betas_t * self.model(x, t, cond, text_mask) / sqrt_one_minus_alphas_cumprod_t)
+        posterior_variance_t = extract(self.posterior_variance, t, x.shape)
+        
+        return model_mean, posterior_variance_t
+        
     # q(x_{t-1}|x_t, x_0)
     @torch.no_grad()
-    def p_sample(self, x, t, t_index, y=None, text_mask=None):
-        betas_t = extract(self.betas, t, x.shape)
-        sqrt_one_minus_alphas_cumprod_t = extract(self.sqrt_one_minus_alphas_cumprod, t, x.shape)
-        sqrt_recip_alphas_t = extract(self.sqrt_recip_alphas, t, x.shape)
-        
-        model_mean = sqrt_recip_alphas_t * (x - betas_t * self.model(x, t, y, text_mask) / sqrt_one_minus_alphas_cumprod_t)
-        
+    def p_sample(self, x, t, t_index, cond=None, text_mask=None):
+        noise = torch.randn_like(x)
+        model_mean, posterior_variance = self.p_mean_variance(x, t, cond, text_mask)
         if t_index == 0:
             return model_mean
         else:
-            posterior_variance_t = extract(self.posterior_variance, t, x.shape)
-            noise = torch.randn_like(x)
-            
-            return model_mean + torch.sqrt(posterior_variance_t) * noise
+            return model_mean + torch.sqrt(posterior_variance) * noise
     
     # x_t -> x_{t-1} -> ... -> x_0
     @torch.no_grad()
-    def p_sample_loop(self, shape, y, text_mask):
+    def p_sample_loop(self, shape, cond, text_mask):
         b = shape[0]
         device = next(self.model.parameters()).device
         # start from pure noise
         img = torch.randn(shape, device=device)
-        imgs = []
+        imgs = [img]
         
         for i in tqdm(reversed(range(0, self.timesteps)), desc='sampling loop time step', total=self.timesteps):
-            img = self.p_sample(img, torch.full((b,), i, device=device, dtype=torch.long), i, y, text_mask)
+            img = self.p_sample(img, torch.full((b,), i, device=device, dtype=torch.long), i, cond, text_mask)
             imgs.append(img.cpu())
             
         return imgs
     
     @torch.no_grad()
     def sample(self, image_size, batch_size=16, channels=3, conds=None, text_masks=None):
-        return self.p_sample_loop(shape=(batch_size, channels, image_size, image_size), y=conds, text_mask=text_masks)
+        return self.p_sample_loop(shape=(batch_size, channels, image_size, image_size), cond=conds, text_mask=text_masks)
