@@ -127,7 +127,7 @@ class GaussianDiffusion(nn.Module):
     
     # x_t -> x_{t-1} -> ... -> x_0
     @torch.no_grad()
-    def p_sample_loop(self, shape, cond, text_mask):
+    def p_sample_loop(self, shape, cond=None, text_mask=None):
         b = shape[0]
         device = next(self.model.parameters()).device
         # start from pure noise
