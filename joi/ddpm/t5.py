@@ -10,6 +10,7 @@ EOS_id = 1
 MAX_LENGTH = 256
 DEFAULT_T5_NAME = "t5-base"
 
+
 def create_tokenizer(name=DEFAULT_T5_NAME):
     return T5Tokenizer.from_pretrained(name, model_max_length=MAX_LENGTH)
 
@@ -47,9 +48,9 @@ def tokenize(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH):
     return input_ids, attn_mask
 
 
-def encode_text_v0(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, pad=PAD_id, cuda=False):
+def encode_text2sentence(texts, name=DEFAULT_T5_NAME, max_len=MAX_LENGTH, pad=PAD_id, cuda=False):
     # encode text directly to sentence. (b n) -> (b l)
-    token_ids, attn_mask = tokenize(texts, name, max_len)
+    token_ids, _ = tokenize(texts, name, max_len)
     attn_mask, weight = create_mask_and_weight(token_ids, pad)
     t5 = create_encoder(name)
     if cuda:
