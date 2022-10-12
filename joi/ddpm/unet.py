@@ -272,6 +272,9 @@ class Unet(nn.Module):
             num_heads_upsample = num_heads
         if condition in [None, 'class', 'text']:
             self.condition = condition
+            if condition == None:
+                layer_cross_attention = (False,) * len(layer_cross_attention)
+                mid_cross_attn = False
         else:
             raise ValueError(f'unknown objective {condition}. condition must be None, class or text')
         self.timestep_embedding = SinusoidalPositionEmbeddings(d_model)
@@ -284,6 +287,7 @@ class Unet(nn.Module):
         )
 
         if exists(condition):
+            mid_cross_attn = True
             if condition == 'class':
                 self.cond_emb = nn.Embedding(num_classes, time_cond_dim)
             elif condition == 'text':
@@ -329,9 +333,9 @@ class Unet(nn.Module):
                 input_block_chans.append(ch)
 
         self.middle_block = TimestepEmbedSequential(
-            ResBlock(ch, time_cond_dim, dropout, use_cross_attention=True),
+            ResBlock(ch, time_cond_dim, dropout, use_cross_attention=mid_cross_attn),
             AttentionBlock(ch, num_heads=num_heads),
-            ResBlock(ch, time_cond_dim, dropout, use_cross_attention=True),
+            ResBlock(ch, time_cond_dim, dropout, use_cross_attention=mid_cross_attn),
         )
 
         self.output_blocks = nn.ModuleList([])
