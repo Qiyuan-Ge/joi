@@ -98,7 +98,7 @@ class Trainer:
                     bs, ch, img_size, _ = imgs.shape
                     t = torch.randint(0, self.timesteps, (bs,), device=self.device).long()
                     if exists(self.condition):
-                        loss = self.diffusion(imgs, t, y=cond, text_mask=mask)
+                        loss = self.diffusion(imgs, t, cond=cond, text_mask=mask)
                     else:
                         loss = self.diffusion(imgs, t)
                     
