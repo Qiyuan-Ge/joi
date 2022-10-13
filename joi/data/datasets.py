@@ -6,7 +6,7 @@ from pycocotools.coco import COCO
 import torch
 import torchvision.datasets as datasets
 
-__all__ = ['MNIST', 'CIFAR10', 'CelebA', 'Coco']
+__all__ = ['MNIST', 'CIFAR10', 'CelebA', 'Coco', 'Flowers102']
 
 def unzip_file(zip_src, tgt_dir):
     if zipfile.is_zipfile(zip_src):
@@ -23,6 +23,10 @@ def MNIST(root, download, transform):
 
 def CIFAR10(root, download, transform):
     return datasets.CIFAR10(root=root, train=True, download=download, transform=transform)
+
+
+def Flowers102(root, download, transform):
+    return datasets.Flowers102(root=root, split="train", download=download, transform=transform)
 
 
 class Coco:
