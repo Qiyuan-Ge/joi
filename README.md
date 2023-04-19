@@ -92,13 +92,3 @@ from <CrossViT: Cross-Attention Multi-Scale Vision Transformer for Image Classif
   https://arxiv.org/abs/2204.00227
 ````
 
-## Citing
-````
-@Misc{accelerate,
-  title =        {Accelerate: Training and inference at scale made simple, efficient and adaptable.},
-  author =       {Sylvain Gugger, Lysandre Debut, Thomas Wolf, Philipp Schmid, Zachary Mueller, Sourab Mangrulkar},
-  howpublished = {\url{https://github.com/huggingface/accelerate}},
-  year =         {2022}
-}
-````
-
